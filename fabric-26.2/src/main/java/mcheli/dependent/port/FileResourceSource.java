@@ -17,7 +17,7 @@ import org.slf4j.Logger;
 
 /**
  * A {@link ResourceSource} over a content-pack directory on the real filesystem — the runtime counterpart to the
- * classpath-bound {@link FabricResourceSource}, so a user-dropped pack under {@code <gamedir>/mcheli/<pack>/} loads the
+ * classpath-bound {@link NeoResourceSource}, so a user-dropped pack under {@code <gamedir>/mcheli/<pack>/} loads the
  * same way the bundled {@code assets/mcheli/} tree does. Rooted at the pack's {@code assets/mcheli/} directory (the
  * standard resource-pack layout), so {@code list("helicopters")} → {@code <root>/helicopters/*.txt} and
  * {@code loadModel("helicopters/ah-64")} → {@code <root>/models/helicopters/ah-64.mqo|obj}, mirroring the reference's

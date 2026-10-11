@@ -30,18 +30,18 @@ import net.minecraft.world.phys.shapes.CollisionContext;
 /**
  * The concrete {@link WorldView} port: wraps a real Minecraft {@link Level} and translates the agnostic
  * layer's block queries, entity-in-box queries, raytracing, spawning and effects onto it. Alongside
- * {@link FabricEntityRef} this is the platform boundary — the agnostic vehicle/physics code never sees a
+ * {@link NeoEntityRef} this is the platform boundary — the agnostic vehicle/physics code never sees a
  * {@code Level}, {@code BlockState} or {@code AABB}; it only sees this interface and the agnostic value types.
  *
  * <p>The physics-critical surface ({@link #isAABBInWater}, {@link #getBlockId}, {@link #isCollidable},
  * {@link #isWater}, {@link #random}) is mapped exactly. The effect surface (particles / sounds) is
  * best-effort: names are resolved through the built-in registries and no-op when unresolved or off-thread.
  */
-public final class FabricWorldView implements WorldView {
+public final class NeoWorldView implements WorldView {
     private final Level level;
     private RandomSource random;   // lazily created wrapper over level.getRandom()
 
-    public FabricWorldView(Level level) { this.level = level; }
+    public NeoWorldView(Level level) { this.level = level; }
 
     /** The wrapped Minecraft level (dependent-side only). */
     public Level handle() { return level; }
@@ -107,7 +107,7 @@ public final class FabricWorldView implements WorldView {
     @Override public List<EntityRef> entitiesInAABB(AABB box) {
         List<EntityRef> out = new ArrayList<>();
         for (Entity e : level.getEntities((Entity) null, toNet(box))) {
-            out.add(new FabricEntityRef(e));
+            out.add(new NeoEntityRef(e));
         }
         return out;
     }
@@ -115,7 +115,7 @@ public final class FabricWorldView implements WorldView {
     @Override public List<EntityRef> entitiesInAABB(AABB box, Role role) {
         List<EntityRef> out = new ArrayList<>();
         for (Entity e : level.getEntities((Entity) null, toNet(box))) {
-            FabricEntityRef ref = new FabricEntityRef(e);
+            NeoEntityRef ref = new NeoEntityRef(e);
             if (ref.role() == role) out.add(ref);
         }
         return out;
@@ -143,7 +143,7 @@ public final class FabricWorldView implements WorldView {
     // ---- effects / spawn ----------------------------------------------------
 
     @Override public void spawn(EntityRef entity) {
-        if (entity instanceof FabricEntityRef ref) {
+        if (entity instanceof NeoEntityRef ref) {
             level.addFreshEntity(ref.handle());
         }
     }
@@ -171,13 +171,13 @@ public final class FabricWorldView implements WorldView {
 
     @Override public void playSoundAtEntity(EntityRef entity, String name, float volume, float pitch) {
         SoundEvent sound = resolveSound(name);
-        if (sound == null || !(entity instanceof FabricEntityRef ref)) return;
+        if (sound == null || !(entity instanceof NeoEntityRef ref)) return;
         level.playSound(null, ref.handle(), sound, SoundSource.NEUTRAL, volume, pitch);
     }
 
     @Override public RandomSource random() {
         RandomSource r = random;
-        if (r == null) r = random = new FabricRandomSource(level.getRandom());
+        if (r == null) r = random = new NeoRandomSource(level.getRandom());
         return r;
     }
 

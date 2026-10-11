@@ -17,7 +17,7 @@ import mcheli.agnostic.weapon.MCH_WeaponInfo;
 import mcheli.agnostic.weapon.MCH_WeaponInfoManager;
 import mcheli.dependent.*;
 import mcheli.dependent.control.MchControlNetwork;
-import mcheli.dependent.port.FabricLogger;
+import mcheli.dependent.port.NeoLogger;
 import mcheli.dependent.port.MchContentPacks;
 import mcheli.dependent.registry.MchRegistries;
 import mcheli.dependent.registry.MchSounds;
@@ -56,7 +56,7 @@ public class MCHeli implements ModInitializer {
         // through the composite ResourceSource). This is the same resource set registerVehicles() used, so the parsed
         // configs line up with the spawn items.
         mcheli.agnostic.spi.ResourceSource res = MchContentPacks.resources();
-        FabricLogger log = new FabricLogger(LOGGER);
+        NeoLogger log = new NeoLogger(LOGGER);
         MCH_HeliInfoManager.getInstance().load(res, log, "helicopters");
         MCP_PlaneInfoManager.getInstance().load(res, log, "planes");
         MCH_TankInfoManager.getInstance().load(res, log, "tanks");

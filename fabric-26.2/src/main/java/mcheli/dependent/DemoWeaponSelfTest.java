@@ -17,7 +17,7 @@ import mcheli.dependent.entity.MchBullet;
 import mcheli.dependent.entity.MchHelicopter;
 import mcheli.dependent.entity.MchTank;
 import mcheli.dependent.entity.MchExplosion;
-import mcheli.dependent.port.FabricEntityRef;
+import mcheli.dependent.port.NeoEntityRef;
 import mcheli.dependent.registry.MchRegistries;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
@@ -167,8 +167,8 @@ public final class DemoWeaponSelfTest implements MchSelfTest {
             if (tank != null) tank.setConfigName("m1a2");
             LivingEntity golem = net.minecraft.world.entity.EntityTypes.IRON_GOLEM.create(this.level, EntitySpawnReason.MOB_SUMMONED) instanceof LivingEntity g ? g : null;
             if (tank != null && golem != null) {
-                float vsTank = agm114.getDamageFactor(new FabricEntityRef(tank));
-                float vsGolem = agm114.getDamageFactor(new FabricEntityRef(golem));
+                float vsTank = agm114.getDamageFactor(new NeoEntityRef(tank));
+                float vsGolem = agm114.getDamageFactor(new NeoEntityRef(golem));
                 damageFactorOk = Math.abs(vsTank - 2.0F) < 1.0e-4F && Math.abs(vsGolem - 1.0F) < 1.0e-4F;
                 LOG.info("[WEAPON-SELFTEST] damageFactor(agm114): vsTank={} vsGolem={} -> {}",
                     fmt(vsTank), fmt(vsGolem), damageFactorOk ? "OK" : "FAIL");

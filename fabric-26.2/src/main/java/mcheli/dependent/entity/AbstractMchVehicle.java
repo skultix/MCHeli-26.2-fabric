@@ -16,7 +16,7 @@ import mcheli.agnostic.weapon.WeaponSlot;
 import mcheli.dependent.control.MchControlState;
 import mcheli.dependent.control.MchControllable;
 import mcheli.dependent.particle.MuzzleFxOptions;
-import mcheli.dependent.port.FabricEntityRef;
+import mcheli.dependent.port.NeoEntityRef;
 import mcheli.dependent.registry.MchSounds;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
@@ -309,7 +309,7 @@ public abstract class AbstractMchVehicle extends Entity implements MchControllab
     private final java.util.Map<Integer, Integer> switchBySeat = new java.util.HashMap<>();
 
     /** The agnostic view of this entity, reused every tick so the physics never sees a Minecraft type. */
-    protected final EntityRef ref = new FabricEntityRef(this);
+    protected final EntityRef ref = new NeoEntityRef(this);
 
     // MCHeli custom roll axis. The authoritative local value; the server also publishes it to DATA_ROLL for others.
     private float rollAngle;
@@ -1256,7 +1256,7 @@ public abstract class AbstractMchVehicle extends Entity implements MchControllab
             return InteractionResult.PASS; // a wreck can't be mounted or skinned (reference interactFirst gates on it)
         }
         // 26.x merged interactAt into interact: try the clicked SEAT first (old interactAt), then the first-free-seat rule.
-        InteractionResult seat = interactAtSeat(player, hitPos);
+        InteractionResult seat = interactAt(player, hitPos);
         if (seat != InteractionResult.PASS) {
             return seat;
         }
@@ -1279,7 +1279,7 @@ public abstract class AbstractMchVehicle extends Entity implements MchControllab
      * their station even on a pilotless craft). The nearest allowed free seat within 1 block of the hit point wins;
      * otherwise {@link #interact} falls back to the normal first-free-seat rule.
      */
-    private InteractionResult interactAtSeat(Player player, Vec3 hit) {
+    private InteractionResult interactAt(Player player, Vec3 hit) {
         if (isDestroyed() || player.isSecondaryUseActive()) {
             return InteractionResult.PASS;
         }
@@ -1374,10 +1374,10 @@ public abstract class AbstractMchVehicle extends Entity implements MchControllab
 
     // ---- client interpolation ----
 
-    private final MchInterpolation mchInterpolation = new MchInterpolation(this, this::mchLerpTo);
+    private final MchInterpolation mchInterpolation = new MchInterpolation(this, this::lerpTo);
     @Override public net.minecraft.world.entity.InterpolationHandler getInterpolation() { return this.mchInterpolation; }
 
-    private void mchLerpTo(double x, double y, double z, float yaw, float pitch, int steps) {
+    private void lerpTo(double x, double y, double z, float yaw, float pitch, int steps) {
         this.lerpX = x;
         this.lerpY = y;
         this.lerpZ = z;
@@ -1698,7 +1698,7 @@ public abstract class AbstractMchVehicle extends Entity implements MchControllab
     //      the pilot; the map is server truth, mirrored to clients via DATA_SEATS and persisted by rider UUID. ----
 
     private final java.util.Map<UUID, Integer> seatByUuid = new java.util.HashMap<>();   // server truth
-    private final java.util.Map<UUID, Integer> pendingSeat = new java.util.HashMap<>();  // interactAtSeat -> addPassenger
+    private final java.util.Map<UUID, Integer> pendingSeat = new java.util.HashMap<>();  // interactAt -> addPassenger
     private final java.util.Map<UUID, Integer> restoredSeats = new java.util.HashMap<>();// NBT -> addPassenger
 
     /** How many seats this config declares (rack slots are reserved in the index space but never boardable). */
@@ -1876,7 +1876,7 @@ public abstract class AbstractMchVehicle extends Entity implements MchControllab
     }
 
     /** Programmatically request that {@code rider} take a specific {@code seat} on its NEXT boarding — the code-path
-     *  equivalent of clicking that seat's box ({@link #interactAtSeat}), for mounts that never go through an interact:
+     *  equivalent of clicking that seat's box ({@link #interactAt}), for mounts that never go through an interact:
      *  scripted crew, NPCs, or the headless self-tests. Server-side; honored by {@link #firstFreeSeatFor} exactly like
      *  a clicked seat (so it can seat a non-player in the pilot seat, which the automatic rule reserves for players). */
     public void preferSeat(Entity rider, int seat) {

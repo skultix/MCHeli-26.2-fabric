@@ -52,7 +52,7 @@ public final class MchContentPacks {
 
     private static boolean discovered = false;
     // Reassigned once in discover() (mod-load thread), then read from render/tick threads — volatile for safe publication.
-    private static volatile ResourceSource shared = new FabricResourceSource(); // bundled-only until discover() runs
+    private static volatile ResourceSource shared = new NeoResourceSource(); // bundled-only until discover() runs
     private static final List<PackMount> MOUNTS = new ArrayList<>();
     private static final List<String> PACK_SOUND_BASENAMES = new ArrayList<>();
 
@@ -65,7 +65,7 @@ public final class MchContentPacks {
 
         Path container = FabricLoader.getInstance().getGameDir().resolve(PACKS_DIRNAME);
         List<ResourceSource> sources = new ArrayList<>();
-        sources.add(new FabricResourceSource()); // BASE first: bundled content wins on a name collision (packs are additive)
+        sources.add(new NeoResourceSource()); // BASE first: bundled content wins on a name collision (packs are additive)
 
         if (Files.isDirectory(container)) {
             for (Path packDir : listSubdirs(container)) {
@@ -94,7 +94,7 @@ public final class MchContentPacks {
         }
     }
 
-    /** The shared resource set (bundled + packs). Every {@code new FabricResourceSource()} call site should read this. */
+    /** The shared resource set (bundled + packs). Every {@code new NeoResourceSource()} call site should read this. */
     public static ResourceSource resources() {
         return shared;
     }

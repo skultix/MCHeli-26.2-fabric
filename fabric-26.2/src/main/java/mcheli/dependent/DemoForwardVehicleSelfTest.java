@@ -156,7 +156,7 @@ public final class DemoForwardVehicleSelfTest implements MchSelfTest {
         LOG.info("[{}-SELFTEST] after {} ticks: piloted forward={} dy={} lateral={} | pilotless forward={} dy={} | altDifferential={}",
             label, CHECK_AFTER_TICKS, fmt(forwardPiloted), fmt(dyPiloted), fmt(lateralPiloted),
             fmt(forwardPilotless), fmt(dyPilotless), fmt(altDifferential));
-        LOG.info("[{}-SELFTEST] RESULT: {} - real flight model {} via AircraftFlightController+FabricEntityRef (forward={} need>{}, altDiff={} need>{}, pilotlessDy={} need<{}, pilotlessFwd={} need<{}, lateral={} need<{})",
+        LOG.info("[{}-SELFTEST] RESULT: {} - real flight model {} via AircraftFlightController+NeoEntityRef (forward={} need>{}, altDiff={} need>{}, pilotlessDy={} need<{}, pilotlessFwd={} need<{}, lateral={} need<{})",
             label,
             pass ? "PASS" : "FAIL",
             pass ? "RIDER-gated thrust flew the piloted entity forward and held it ~" + fmt(altDifferential) + " blocks above the pilotless one"

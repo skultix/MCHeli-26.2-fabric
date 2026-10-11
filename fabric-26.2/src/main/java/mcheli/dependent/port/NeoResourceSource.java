@@ -32,7 +32,7 @@ import org.slf4j.Logger;
  * agnostic {@link MchModelLoader}, and caches the result. The parsed {@link MchModel} is the {@link ModelHandle}
  * the dependent renderer downcasts.
  */
-public final class FabricResourceSource implements ResourceSource {
+public final class NeoResourceSource implements ResourceSource {
     private static final String ROOT = "assets/mcheli/";
     private static final Logger LOGGER = LogUtils.getLogger();
     /** Shared across instances, like the reference's static model map — a model is parsed at most once. */
@@ -57,13 +57,13 @@ public final class FabricResourceSource implements ResourceSource {
 
     @Override
     public Reader openUtf8(String path) {
-        InputStream in = FabricResourceSource.class.getResourceAsStream("/" + ROOT + path);
+        InputStream in = NeoResourceSource.class.getResourceAsStream("/" + ROOT + path);
         return in == null ? null : new InputStreamReader(in, StandardCharsets.UTF_8);
     }
 
     @Override
     public boolean exists(String path) {
-        return FabricResourceSource.class.getResource("/" + ROOT + path) != null;
+        return NeoResourceSource.class.getResource("/" + ROOT + path) != null;
     }
 
     @Override
@@ -91,7 +91,7 @@ public final class FabricResourceSource implements ResourceSource {
     /** Open {@code assets/mcheli/<resPath>} off the classpath and parse it; null if absent, or on a parse error
      *  (logged, non-fatal — a broken model must not crash mod load). The parser closes the stream. */
     private static MchModel tryParse(String resPath) {
-        InputStream in = FabricResourceSource.class.getResourceAsStream("/" + ROOT + resPath);
+        InputStream in = NeoResourceSource.class.getResourceAsStream("/" + ROOT + resPath);
         if (in == null) {
             return null;
         }

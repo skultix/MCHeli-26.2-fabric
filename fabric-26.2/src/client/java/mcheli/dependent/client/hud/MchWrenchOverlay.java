@@ -55,6 +55,6 @@ public final class MchWrenchOverlay {
         if (hp < maxHp && pct >= 100) {
             pct = 99; // never show a full 100% while any damage remains (reference)
         }
-        g.centeredText(mc.font, String.format("%d %%", pct), cx, posY + 30, FabricHudRenderer.textColor(color));
+        g.centeredText(mc.font, String.format("%d %%", pct), cx, posY + 30, NeoHudRenderer.textColor(color));
     }
 }

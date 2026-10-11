@@ -65,7 +65,7 @@ public final class MchGunnerView {
     }
 
     /** Applied to the camera FOV by {@code CameraMixin} (Camera.calculateFov RETURN) — NeoForge's ViewportEvent.ComputeFov. */
-    public static float modifyFov(float fov) {
+    public static float onComputeFov(float fov) {
         LocalPlayer player = Minecraft.getInstance().player;
         if (zoom > 1.0F && gunnerVehicle(player) != null) {
             return fov / zoom; // optical zoom = narrower FOV

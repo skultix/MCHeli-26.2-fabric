@@ -15,7 +15,7 @@ import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
 /**
  * Registers the MCHeli cockpit HUD as a HUD element after the crosshair. It runs only while the in-game HUD renders and, when the local player is
  * riding an {@link AbstractMchVehicle}, resolves that vehicle's pilot HUD config, builds a {@link MchHudVarState} from
- * the live entity, and draws it through {@link FabricHudRenderer}. Everything shown is config-driven from the vehicle's
+ * the live entity, and draws it through {@link NeoHudRenderer}. Everything shown is config-driven from the vehicle's
  * {@code HUD =} list + the {@code hud/*.txt} definitions.
  */
 public final class MchHudOverlay {
@@ -65,6 +65,6 @@ public final class MchHudOverlay {
         }
         float partialTick = deltaTracker.getGameTimeDeltaPartialTick(false); // smooths the radar sweep line
         MchHudVarState state = new MchHudVarState(vehicle, mc.player, g.guiWidth(), g.guiHeight(), partialTick);
-        hud.draw(new FabricHudRenderer(g, mc.font), state, MCH_HudManager::get);
+        hud.draw(new NeoHudRenderer(g, mc.font), state, MCH_HudManager::get);
     }
 }

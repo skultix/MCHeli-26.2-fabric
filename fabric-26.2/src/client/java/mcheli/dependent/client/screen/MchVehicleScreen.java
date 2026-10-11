@@ -181,28 +181,28 @@ public class MchVehicleScreen extends AbstractContainerScreen<MchVehicleMenu> {
         }
         int pct = (int) (fuelP * 100.0F + 0.5F);
         int color = pct > 20 ? GREEN : 0xFF0000;
-        g.text(this.font, String.format("%3d", pct) + "%", x + 30, y + 65, mcheli.dependent.client.hud.FabricHudRenderer.textColor(color), false);
+        g.text(this.font, String.format("%3d", pct) + "%", x + 30, y + 65, mcheli.dependent.client.hud.NeoHudRenderer.textColor(color), false);
     }
 
     @Override
     protected void extractLabels(GuiGraphicsExtractor g, int mouseX, int mouseY) {
         // Foreground coordinates are container-local (the matrix is already translated by leftPos/topPos).
-        g.text(this.font, this.title, 10, 10, mcheli.dependent.client.hud.FabricHudRenderer.textColor(0xFFFFFF), false);
+        g.text(this.font, this.title, 10, 10, mcheli.dependent.client.hud.NeoHudRenderer.textColor(0xFFFFFF), false);
 
         WeaponSlot w = this.vehicle != null ? this.vehicle.weaponAt(this.shownWeapon) : null;
         if (w == null) {
-            g.text(this.font, Component.translatable("gui.mcheli.no_weapon"), 79, 45, mcheli.dependent.client.hud.FabricHudRenderer.textColor(0xFFFFFF), false);
+            g.text(this.font, Component.translatable("gui.mcheli.no_weapon"), 79, 45, mcheli.dependent.client.hud.NeoHudRenderer.textColor(0xFFFFFF), false);
             return;
         }
         String name = w.info.displayName != null && !w.info.displayName.isEmpty() ? w.info.displayName : w.weaponName;
-        g.text(this.font, name, 79, 30, mcheli.dependent.client.hud.FabricHudRenderer.textColor(0xFFFFFF), false);
+        g.text(this.font, name, 79, 30, mcheli.dependent.client.hud.NeoHudRenderer.textColor(0xFFFFFF), false);
 
         if (w.hasEconomy()) {
             int rest = this.vehicle.ammoOf(this.shownWeapon);
             int max = w.maxAmmo();
             // The reference's three-way colouring: red at empty, green at full, white in between.
             int color = rest == 0 ? 0xFF0000 : (rest >= max ? GREEN : 0xFFFFFF);
-            g.text(this.font, String.format("%4d/%4d", rest, max), 145, 70, mcheli.dependent.client.hud.FabricHudRenderer.textColor(color), false);
+            g.text(this.font, String.format("%4d/%4d", rest, max), 145, 70, mcheli.dependent.client.hud.NeoHudRenderer.textColor(color), false);
             drawRoundItems(g, w);
         }
     }
@@ -222,7 +222,7 @@ public class MchVehicleScreen extends AbstractContainerScreen<MchVehicleMenu> {
             int ix = 85 + 20 * i;
             g.item(new ItemStack(item), ix, 62);
             boolean enough = countHeld(ri) >= ri.num;
-            g.text(this.font, Integer.toString(ri.num), ix + 5, 80, mcheli.dependent.client.hud.FabricHudRenderer.textColor(enough ? 0xFFFFFF : 0xFF0000), false);
+            g.text(this.font, Integer.toString(ri.num), ix + 5, 80, mcheli.dependent.client.hud.NeoHudRenderer.textColor(enough ? 0xFFFFFF : 0xFF0000), false);
             i++;
         }
     }

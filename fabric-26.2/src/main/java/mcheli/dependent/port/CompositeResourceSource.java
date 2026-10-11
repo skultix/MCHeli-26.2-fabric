@@ -13,7 +13,7 @@ import mcheli.agnostic.spi.ResourceSource;
 import org.slf4j.Logger;
 
 /**
- * A {@link ResourceSource} that unions the bundled mcheli assets ({@link FabricResourceSource}) with any discovered
+ * A {@link ResourceSource} that unions the bundled mcheli assets ({@link NeoResourceSource}) with any discovered
  * content-pack directories ({@link FileResourceSource}). The base source is FIRST, so the bundled content wins on a
  * name collision and packs are purely ADDITIVE — a pack contributes NEW config/model names, never silently replaces a
  * shipped one (matching the manager's first-wins {@code containsKey} skip). {@code list} is the DEDUPED union across

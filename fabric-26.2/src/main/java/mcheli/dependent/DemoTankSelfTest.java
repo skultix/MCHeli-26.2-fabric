@@ -191,7 +191,7 @@ public final class DemoTankSelfTest implements MchSelfTest {
 
         LOG.info("[TANK-SELFTEST] after {} ticks: dz={} dx={} dy={} passengers={}",
             CHECK_AFTER_TICKS, fmt(dz), fmt(dx), fmt(dy), tank.getPassengers().size());
-        LOG.info("[TANK-SELFTEST] RESULT: {} - real TankFlightModel {} via AircraftFlightController+FabricEntityRef (dz={} need>{}, |dx|={} need<{}, dy={} need<{})",
+        LOG.info("[TANK-SELFTEST] RESULT: {} - real TankFlightModel {} via AircraftFlightController+NeoEntityRef (dz={} need>{}, |dx|={} need<{}, dy={} need<{})",
             pass ? "PASS" : "FAIL",
             pass ? "drove straight FORWARD on the ground (did not fly)"
                  : (!grounded ? "FLEW (tank should not take off)" : (forward ? "drove but DRIFTED sideways" : "did NOT drive forward")),

@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "id": "mcheli-gametest",
+  "version": "1.0.0",
+  "name": "MCHeli client gametests",
+  "environment": "client",
+  "entrypoints": {
+    "fabric-client-gametest": [
+      "mcheli.gametest.MchClientGameTest"
+    ]
+  },
+  "depends": {
+    "mcheli": "*",
+    "fabric-api": "*"
+  }
+}

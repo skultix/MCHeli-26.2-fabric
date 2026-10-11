@@ -6,10 +6,10 @@ import mcheli.agnostic.spi.Logger;
  * Bridges the agnostic {@link Logger} SPI to slf4j. The agnostic layer uses {@code String.format}-style ({@code %s})
  * format strings (mirroring the reference {@code MCH_Lib.Log}), so format them here before handing to slf4j.
  */
-public final class FabricLogger implements Logger {
+public final class NeoLogger implements Logger {
     private final org.slf4j.Logger delegate;
 
-    public FabricLogger(org.slf4j.Logger delegate) {
+    public NeoLogger(org.slf4j.Logger delegate) {
         this.delegate = delegate;
     }
 

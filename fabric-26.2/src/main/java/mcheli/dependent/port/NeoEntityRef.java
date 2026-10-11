@@ -30,16 +30,16 @@ import net.minecraft.world.phys.Vec3;
  * vertical slice — the slice's agnostic driver ({@code SimpleVehicleLogic}) never reaches them. They are
  * the natural first work-items of the full dependent porting phase.
  */
-public final class FabricEntityRef implements EntityRef {
+public final class NeoEntityRef implements EntityRef {
     private final Entity e;
 
-    public FabricEntityRef(Entity e) { this.e = e; }
+    public NeoEntityRef(Entity e) { this.e = e; }
 
     /** The wrapped Minecraft entity (dependent-side only). */
     public Entity handle() { return e; }
 
     @Override public int id() { return e.getId(); }
-    @Override public boolean isSameAs(EntityRef other) { return other instanceof FabricEntityRef n && n.e == this.e; }
+    @Override public boolean isSameAs(EntityRef other) { return other instanceof NeoEntityRef n && n.e == this.e; }
     @Override public boolean isDead() { return e.isRemoved(); }
     @Override public boolean isRemote() { return e.level().isClientSide(); }
 
@@ -92,11 +92,11 @@ public final class FabricEntityRef implements EntityRef {
     // mount / riders
     @Override public EntityRef vehicle() {
         Entity v = e.getVehicle();
-        return v == null ? null : new FabricEntityRef(v);
+        return v == null ? null : new NeoEntityRef(v);
     }
     @Override public List<EntityRef> passengers() {
         List<EntityRef> out = new ArrayList<>();
-        for (Entity p : e.getPassengers()) out.add(new FabricEntityRef(p));
+        for (Entity p : e.getPassengers()) out.add(new NeoEntityRef(p));
         return out;
     }
 
@@ -105,6 +105,6 @@ public final class FabricEntityRef implements EntityRef {
         throw new UnsupportedOperationException("SyncedData port not implemented yet");
     }
     @Override public WorldView world() {
-        return new FabricWorldView(e.level());  // thin wrapper over the entity's Level (same package)
+        return new NeoWorldView(e.level());  // thin wrapper over the entity's Level (same package)
     }
 }

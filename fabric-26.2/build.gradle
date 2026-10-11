@@ -47,6 +47,19 @@ loom {
     }
 }
 
+// Client gametests (Fabric API client-gametest): a scripted real client — create a world, spawn vehicles, ride one,
+// screenshot. Code lives in src/gametest; run with ./gradlew :fabric-26.2:runClientGameTest (screenshots land in
+// build/run/clientGameTest/screenshots).
+fabricApi {
+    configureTests {
+        createSourceSet = true
+        modId = "mcheli-gametest"
+        enableGameTests = false
+        enableClientGameTests = true
+        eula = true
+    }
+}
+
 dependencies {
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
     implementation "net.fabricmc:fabric-loader:${project.loader_version}"

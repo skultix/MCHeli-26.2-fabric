@@ -133,7 +133,7 @@ public final class DemoHeliSelfTest implements MchSelfTest {
 
         LOG.info("[HELI-SELFTEST] after {} ticks: piloted dy={} pilotless dy={} differential={} pilotedHorizontal={} passengers={}",
             CHECK_AFTER_TICKS, fmt(dyPiloted), fmt(dyPilotless), fmt(differential), fmt(horizontal), piloted.getPassengers().size());
-        LOG.info("[HELI-SELFTEST] RESULT: {} - real HeliFlightModel {} via AircraftFlightController+FabricEntityRef (differential={} need>{}, pilotlessDy={} need<{}, horizontal={} need<{})",
+        LOG.info("[HELI-SELFTEST] RESULT: {} - real HeliFlightModel {} via AircraftFlightController+NeoEntityRef (differential={} need>{}, pilotlessDy={} need<{}, horizontal={} need<{})",
             pass ? "PASS" : "FAIL",
             pass ? "RIDER-gated collective lift held the piloted heli ~" + fmt(differential) + " blocks above the pilotless one"
                  : (!gravityReal ? "pilotless heli did NOT fall (gravity/physics not running)"

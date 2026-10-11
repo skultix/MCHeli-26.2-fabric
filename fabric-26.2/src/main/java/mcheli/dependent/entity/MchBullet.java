@@ -4,7 +4,7 @@ import mcheli.agnostic.weapon.MCH_MissileGuidance;
 import mcheli.agnostic.weapon.MCH_WeaponBallistics;
 import mcheli.agnostic.weapon.MCH_WeaponInfo;
 import mcheli.dependent.particle.MuzzleFxOptions;
-import mcheli.dependent.port.FabricEntityRef;
+import mcheli.dependent.port.NeoEntityRef;
 import net.minecraft.core.Direction;
 import net.minecraft.core.particles.BlockParticleOption;
 import net.minecraft.core.particles.ParticleTypes;
@@ -69,11 +69,11 @@ public class MchBullet extends Entity {
     private static final EntityDataAccessor<Byte> DATA_MARKER =
         SynchedEntityData.defineId(MchBullet.class, EntityDataSerializers.BYTE);
     /** Guided-missile kind (0 = not guided, 1 = AA air-homing, 2 = AT direct-homing). Synced so the client knows to
-     *  accept the server's curved position/orientation via {@link #mchLerpTo} instead of dead-reckoning a straight line. */
+     *  accept the server's curved position/orientation via {@link #lerpTo} instead of dead-reckoning a straight line. */
     private static final EntityDataAccessor<Byte> DATA_GUIDED =
         SynchedEntityData.defineId(MchBullet.class, EntityDataSerializers.BYTE);
     /** True for a {@code torpedo}-type round. Synced so the client (a) accepts the server's water-run path via
-     *  {@link #mchLerpTo} — the run is server-authoritative like guidance — and (b) knows the round self-steers underwater. */
+     *  {@link #lerpTo} — the run is server-authoritative like guidance — and (b) knows the round self-steers underwater. */
     private static final EntityDataAccessor<Boolean> DATA_TORPEDO =
         SynchedEntityData.defineId(MchBullet.class, EntityDataSerializers.BOOLEAN);
     /** In-water gravity ({@code MCH_WeaponInfo.gravityInWater}). The reference swaps {@code gravity}→{@code gravityInWater}
@@ -119,7 +119,7 @@ public class MchBullet extends Entity {
 
     /**
      * Spawn a GUIDED missile: a normal projectile that, after {@code rigidityTime} ticks, homes toward {@code target}
-     * (server-authoritative; the client accepts the curved path via {@link #mchLerpTo}). {@code guidedKind} is
+     * (server-authoritative; the client accepts the curved path via {@link #lerpTo}). {@code guidedKind} is
      * {@link #GUIDED_AA} (pursuit blend) or {@link #GUIDED_AT_DIRECT} (hard-snap). Falls back to an unguided round if
      * {@code target} is null.
      */
@@ -586,7 +586,7 @@ public class MchBullet extends Entity {
     /** Direct-hit power damage (× per-victim damage factor), then this round always detonates/dies via onImpact. */
     private void onImpactEntity(Entity target) {
         Entity real = target instanceof net.minecraft.world.entity.boss.enderdragon.EnderDragonPart part ? part.parentMob : target;
-        float factor = this.weaponInfo != null ? this.weaponInfo.getDamageFactor(new FabricEntityRef(real)) : 1.0F;
+        float factor = this.weaponInfo != null ? this.weaponInfo.getDamageFactor(new NeoEntityRef(real)) : 1.0F;
         DamageSource src = this.damageSources().thrown(this, this.shooter);
         real.invulnerableTime = 0; // reference zeroes the hurt-cooldown so rapid fire + the follow-up blast all land
         real.hurt(src, this.damage * factor);
@@ -989,10 +989,10 @@ public class MchBullet extends Entity {
 
     @Override public boolean isPickable() { return false; }
     @Override public boolean shouldRenderAtSqrDistance(double d) { return d < 4096.0; }
-    private final MchInterpolation mchInterpolation = new MchInterpolation(this, this::mchLerpTo);
+    private final MchInterpolation mchInterpolation = new MchInterpolation(this, this::lerpTo);
     @Override public net.minecraft.world.entity.InterpolationHandler getInterpolation() { return this.mchInterpolation; }
 
-    private void mchLerpTo(double x, double y, double z, float yr, float xr, int steps) {
+    private void lerpTo(double x, double y, double z, float yr, float xr, int steps) {
         // In-flight straight rounds dead-reckon (no lerp). Exceptions accept the server position:
         //  - a PLANTED marker snaps to its block so the client beacon isn't dead-reckoned past the wall;
         //  - a GUIDED missile curves under server authority, which the client can't reproduce from straight motion;

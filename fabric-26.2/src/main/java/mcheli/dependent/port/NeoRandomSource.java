@@ -7,10 +7,10 @@ import mcheli.agnostic.spi.RandomSource;
  * to the agnostic RNG surface. The agnostic ballistics / HUD-jitter code draws through this so it never
  * touches {@code java.util.Random} or {@code level.getRandom()} directly.
  */
-public final class FabricRandomSource implements RandomSource {
+public final class NeoRandomSource implements RandomSource {
     private final net.minecraft.util.RandomSource r;
 
-    public FabricRandomSource(net.minecraft.util.RandomSource r) { this.r = r; }
+    public NeoRandomSource(net.minecraft.util.RandomSource r) { this.r = r; }
 
     @Override public double  nextDouble()        { return r.nextDouble(); }
     @Override public float   nextFloat()         { return r.nextFloat(); }

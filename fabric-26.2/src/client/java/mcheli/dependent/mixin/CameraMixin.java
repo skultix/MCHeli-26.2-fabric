@@ -29,7 +29,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  *       the hull; vanilla {@code Camera.alignWithEntity} adds eye height on world-Y with no event to intercept, hence
  *       this Mixin). 26.x vanilla {@code setRotation} has no roll (NeoForge patched one in), so roll is applied to the
  *       camera quaternion + basis vectors here ({@link #mcheli$setRotation}).</li>
- *   <li><b>Gunner zoom</b> — {@code Camera.calculateFov} is narrowed by {@code MchGunnerView.modifyFov} (NeoForge's
+ *   <li><b>Gunner zoom</b> — {@code Camera.calculateFov} is narrowed by {@code MchGunnerView.onComputeFov} (NeoForge's
  *       {@code ViewportEvent.ComputeFov}; 26.x moved the FOV from GameRenderer to Camera).
  *       Free-look tanks keep the player's own look but gain the reference's faded camera roll
  *       ({@code wrap(rotRoll)·cos(hullYaw − playerYaw)}, {@code MCH_ClientCommonTickHandler:408-415}); emplacements
@@ -74,7 +74,7 @@ public abstract class CameraMixin {
 
     @Inject(method = "calculateFov", at = @At("RETURN"), cancellable = true)
     private void mcheli$gunnerZoom(float partialTick, CallbackInfoReturnable<Float> cir) {
-        cir.setReturnValue(mcheli.dependent.client.MchGunnerView.modifyFov(cir.getReturnValueF()));
+        cir.setReturnValue(mcheli.dependent.client.MchGunnerView.onComputeFov(cir.getReturnValueF()));
     }
 
     @Inject(method = "alignWithEntity", at = @At("TAIL"))

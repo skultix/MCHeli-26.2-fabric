@@ -2,7 +2,7 @@ package mcheli.dependent.entity;
 
 import mcheli.agnostic.weapon.MCH_ExplosionMath;
 import mcheli.agnostic.weapon.MCH_WeaponInfo;
-import mcheli.dependent.port.FabricEntityRef;
+import mcheli.dependent.port.NeoEntityRef;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
@@ -87,7 +87,7 @@ public final class MchExplosion {
                 if (t <= 0.0F) {
                     continue;
                 }
-                float factor = damageInfo != null ? damageInfo.getDamageFactor(new FabricEntityRef(ent)) : 1.0F;
+                float factor = damageInfo != null ? damageInfo.getDamageFactor(new NeoEntityRef(ent)) : 1.0F;
                 Entity victim = ent instanceof net.minecraft.world.entity.boss.enderdragon.EnderDragonPart part ? part.parentMob : ent;
                 // Zero the hurt-cooldown so the blast STACKS with a same-tick direct hit (the reference zeroes
                 // hurtResistantTime before every weapon hurt); otherwise invuln frames absorb the smaller of the two.

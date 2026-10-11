@@ -21,7 +21,7 @@ import org.joml.Matrix3x2fStack;
  * source), so a segment is a {@code fill} in a translated+rotated frame — still one solid float-space quad.
 
  */
-public final class FabricHudRenderer implements HudRenderer {
+public final class NeoHudRenderer implements HudRenderer {
 
     /** Real {@code [width, height]} of each gui sheet, read once from its PNG header (IHDR) and cached — the reference
      *  scaled UVs by the texture's actual size, so this must NOT be hardcoded (a 512-wide or non-256-tall custom/content
@@ -54,7 +54,7 @@ public final class FabricHudRenderer implements HudRenderer {
     private final GuiGraphicsExtractor g;
     private final Font font;
 
-    public FabricHudRenderer(GuiGraphicsExtractor g, Font font) {
+    public NeoHudRenderer(GuiGraphicsExtractor g, Font font) {
         this.g = g;
         this.font = font;
     }
