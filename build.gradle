@@ -4,10 +4,21 @@
 // because the two eras use incompatible modding toolchains):
 //   :mcheli-1.7.10   — the decompiled, compiling & runnable 1.7.10 reference
 //                      (RetroFuturaGradle 1.4.9, Java 8, Forge 10.13.4.1614)
-//   :neoforge-1.21.1 — the 1.21.1 port (NeoForge / ModDevGradle, Java 21)   [scaffolding]
+//   :mcheli-agnostic — pure-Java game logic shared by every platform module (Java 21)
+//   :neoforge-1.21.1 — the 1.21.1 port (NeoForge / ModDevGradle, Java 21)
+//   :fabric-26.2     — the 26.2 port (Fabric / Loom, Java 25)                  [skeleton]
 //
+// Shared MCHeli content (configs, models, textures, sounds) lives in mcheli-assets/ (not a Gradle project);
+// platform modules add it as a resources srcDir.
 // The raw CFR decompile baseline (not a Gradle project) lives in reference/decompiled-srg/.
 // The original distributed mod jar is not committed; see mcheli-1.7.10/build.gradle (mcheliJar).
+
+// Declare every Minecraft Gradle plugin ONCE here (apply false) so ModDevGradle and Loom load in the same
+// classloader; letting each subproject resolve its own plugin version risks clashing shared plugin dependencies.
+plugins {
+    id 'net.neoforged.moddev' version '2.0.141' apply false
+    id 'net.fabricmc.fabric-loom' version '1.18.4' apply false
+}
 
 group = 'mcheli'
 version = '1.0.4'

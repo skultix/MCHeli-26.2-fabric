@@ -1,0 +1,10 @@
+# Gradle
+.gradle/
+build/
+
+# Fabric dev run directory
+run/
+
+# IntelliJ IDEA
+.idea/
+*.iml

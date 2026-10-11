@@ -1,0 +1,52 @@
+plugins {
+    id 'net.fabricmc.fabric-loom' // version pinned in the root build.gradle
+}
+
+group = 'mcheli'
+version = '0.1.0'
+
+// Minecraft 26.x is unobfuscated: this Loom plugin uses Mojang's official names and does NOT remap
+// (plain implementation/compileOnly + jar — no modImplementation/remapJar). 26.x requires Java 25.
+java.toolchain.languageVersion = JavaLanguageVersion.of(25)
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 25
+}
+
+// Same shared MCHeli content the NeoForge module bundles (see the root build.gradle). Version-specific vanilla JSON
+// (item models / client items, particle defs, recipes) goes in this module's own src/main/resources.
+sourceSets.main.resources.srcDir rootProject.file('mcheli-assets')
+
+loom {
+    // Client-only code lives in src/client; Loom fails the build if src/main references client classes.
+    splitEnvironmentSourceSets()
+
+    mods {
+        mcheli {
+            sourceSet sourceSets.main
+            sourceSet sourceSets.client
+        }
+    }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+
+    // The agnostic layer (pure Java, Java 21 bytecode — loads fine on 25). Unlike ModDevGradle, Loom's dev runs
+    // put plain library jars straight on Knot's classpath, so `implementation` covers compile AND dev runtime;
+    // `include` embeds it as a Jar-in-Jar in the production mod jar.
+    implementation project(':mcheli-agnostic')
+    include project(':mcheli-agnostic')
+}
+
+processResources {
+    def version = project.version
+    inputs.property 'version', version
+
+    filesMatching('fabric.mod.json') {
+        expand 'version': version
+    }
+}

@@ -14,6 +14,11 @@ pluginManagement {
             name = 'NeoForged'
             url = uri('https://maven.neoforged.net/releases')
         }
+        // Fabric Loom (for :fabric-26.2)
+        maven {
+            name = 'Fabric'
+            url = uri('https://maven.fabricmc.net/')
+        }
         gradlePluginPortal()
         mavenCentral()
         mavenLocal()
@@ -21,8 +26,8 @@ pluginManagement {
 }
 
 plugins {
-    // Auto-provisions JDK toolchains (Java 8 Azul for 1.7.10, Java 21 for 1.21.1).
-    id 'org.gradle.toolchains.foojay-resolver-convention' version '0.7.0'
+    // Auto-provisions JDK toolchains (Java 8 Azul for 1.7.10, Java 21 for 1.21.1, Java 25 for 26.2).
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
 }
 
 rootProject.name = 'MCHeli'
@@ -30,3 +35,4 @@ rootProject.name = 'MCHeli'
 include 'mcheli-agnostic'
 //include 'mcheli-1.7.10'
 include 'neoforge-1.21.1'
+include 'fabric-26.2'

@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "id": "mcheli",
+  "version": "${version}",
+  "name": "MCHeli",
+  "description": "MCHeli ported to Fabric 26.2. Original mod by Minato Tanaka (EMB4).",
+  "authors": [
+    "Minato Tanaka (EMB4)"
+  ],
+  "license": "All Rights Reserved",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "mcheli.fabric.MCHeliFabric"
+    ],
+    "client": [
+      "mcheli.fabric.client.MCHeliFabricClient"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.19.5",
+    "minecraft": "~26.2",
+    "java": ">=25",
+    "fabric-api": "*"
+  }
+}
