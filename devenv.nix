@@ -12,6 +12,7 @@ let
   # but they link against these system libs, which NixOS does not provide in a global /usr/lib).
   runtimeLibs = with pkgs; [
     libGL
+    vulkan-loader # 26.x tries a Vulkan graphics backend first (falls back to OpenGL without it)
     glfw3-minecraft
     openal
     libpulseaudio
