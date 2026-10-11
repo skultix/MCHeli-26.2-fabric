@@ -35,3 +35,19 @@ Thumbs.db
 # NOTE: MC1.7.10_mcheli_1.0.3.zip is intentionally NOT ignored — the 1.7.10
 # reference workspace extracts its assets from it at build time
 # (see reference/mcheli-1.7.10/build.gradle -> extractModResources).
+
+# ---- devenv ----
+.devenv*
+devenv.local.nix
+.direnv/
+
+# Devenv
+.devenv*
+devenv.local.nix
+devenv.local.yaml
+
+# direnv
+.direnv
+
+# pre-commit
+.pre-commit-config.yaml
