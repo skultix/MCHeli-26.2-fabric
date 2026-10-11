@@ -40,7 +40,7 @@ public final class MchHudVarState implements HudState {
         this.motion = vehicle.getDeltaMovement();
         this.altitude = computeAltitude();
         this.seaAlt = Math.max(0.0, vehicle.getY() - vehicle.level().getSeaLevel());
-        long dayTime = vehicle.level().getDayTime();
+        long dayTime = vehicle.level().getOverworldClockTime();
         this.timeOfDay = ((dayTime % 24000L) + 24000L) % 24000L;
         long mc = (dayTime + 6000L) % 24000L; // reference: clock reads 06:00 at dawn
         this.mcHour = (int) (mc / 1000L);

@@ -18,6 +18,7 @@
   "entity.mcheli.cartridge": "Cartridge",
   "entity.mcheli.container": "Cargo Container",
   "key.categories.mcheli": "MCHeli",
+  "key.category.mcheli.controls": "MCHeli",
   "key.mcheli.gui": "Vehicle Menu",
   "gui.mcheli.reload": "Reload",
   "gui.mcheli.close": "Close",

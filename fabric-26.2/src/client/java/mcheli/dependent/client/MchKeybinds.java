@@ -11,13 +11,6 @@ import mcheli.dependent.entity.AbstractMchVehicle;
 import mcheli.dependent.entity.MchHelicopter;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.ClientTickEvent;
-import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
-import net.neoforged.neoforge.client.settings.KeyConflictContext;
-import net.neoforged.neoforge.network.PacketDistributor;
 
 /**
  * MCHeli's keybinds and their client dispatch. The port of the reference's {@code MCH_AircraftClientTickHandler} key
@@ -35,7 +28,6 @@ import net.neoforged.neoforge.network.PacketDistributor;
  * <p>The seat decision tree reproduces {@code commonPlayerControl:66-93}. All actions are serverbound and re-checked
  * server-side. Mappings register on the MOD bus; presses are polled on the GAME bus.
  */
-@EventBusSubscriber(modid = MCHeli.MODID, value = Dist.CLIENT)
 public final class MchKeybinds {
     private MchKeybinds() {}
 
@@ -52,24 +44,26 @@ public final class MchKeybinds {
     /** Client debounce: ticks left before another gunner-mode toggle may be sent (blocks a double-tap double-send). */
     private static int gunnerToggleCooldown;
 
+    /** The MCHeli controls category (26.x categories are registered records, translated from
+     *  {@code key.category.mcheli.controls}). */
+    private static final KeyMapping.Category CATEGORY =
+        KeyMapping.Category.register(mcheli.dependent.registry.MchRegistries.id("controls"));
+
+    // No NeoForge KeyConflictContext.IN_GAME on Fabric: onClientTick already ignores presses while a screen is open.
     private static KeyMapping key(String name, int code) {
-        return new KeyMapping("key.mcheli." + name, KeyConflictContext.IN_GAME,
-            InputConstants.Type.KEYSYM, code, "key.categories.mcheli");
+        return new KeyMapping("key.mcheli." + name, InputConstants.Type.KEYSYM, code, CATEGORY);
     }
-
-    @SubscribeEvent
-    public static void onRegisterKeys(RegisterKeyMappingsEvent event) {
-        event.register(GUI);
-        event.register(SEAT_PREV);
-        event.register(FREE_LOOK);
-        event.register(GUNNER_MODE);
-        event.register(ZOOM);
-        event.register(FREE_LOOK_TOGGLE);
-        event.register(FLARE);
+    public static void register() {
+        net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper.registerKeyMapping(GUI);
+        net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper.registerKeyMapping(SEAT_PREV);
+        net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper.registerKeyMapping(FREE_LOOK);
+        net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper.registerKeyMapping(GUNNER_MODE);
+        net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper.registerKeyMapping(ZOOM);
+        net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper.registerKeyMapping(FREE_LOOK_TOGGLE);
+        net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper.registerKeyMapping(FLARE);
+        net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents.END_CLIENT_TICK.register(MchKeybinds::onClientTick);
     }
-
-    @SubscribeEvent
-    public static void onClientTick(ClientTickEvent.Post event) {
+    public static void onClientTick(net.minecraft.client.Minecraft client) {
         Minecraft mc = Minecraft.getInstance();
         // consumeClick() drains queued presses so each fires ONCE per press. Drain both seat keys every tick even when
         // we won't act, so a press while a screen is open doesn't queue up and fire on close.
@@ -82,7 +76,7 @@ public final class MchKeybinds {
         if (gunnerToggleCooldown > 0) {
             gunnerToggleCooldown--; // tick down every client frame, even off a vehicle
         }
-        if (mc.player == null || mc.screen != null || !(mc.player.getVehicle() instanceof AbstractMchVehicle v)) {
+        if (mc.player == null || mc.gui.screen() != null || !(mc.player.getVehicle() instanceof AbstractMchVehicle v)) {
             return;
         }
         int seat = v.seatIndexOf(mc.player);
@@ -109,14 +103,14 @@ public final class MchKeybinds {
         // ticks — a second press would re-evaluate branch 1/3 on the old state and cancel the toggle).
         if (gunnerToggle && pilot && gunnerToggleCooldown == 0) {
             if (v.isSeatGunnerMode(0) && v.canSwitchCameraPos()) {
-                PacketDistributor.sendToServer(new ServerboundGunnerModePayload(v.getId())); // leave gunner mode
+                net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(new ServerboundGunnerModePayload(v.getId())); // leave gunner mode
                 v.setViewCameraId(1);
                 gunnerToggleCooldown = 5;
             } else if (v.getViewCameraId() > 0) {
                 int next = v.getViewCameraId() + 1;
                 v.setViewCameraId(next >= v.cameraPosCount() ? 0 : next);
             } else if (v.canSwitchGunnerMode()) {
-                PacketDistributor.sendToServer(new ServerboundGunnerModePayload(v.getId())); // enter gunner mode
+                net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(new ServerboundGunnerModePayload(v.getId())); // enter gunner mode
                 v.setViewCameraId(0);
                 gunnerToggleCooldown = 5;
             } else if (v.canSwitchCameraPos()) {
@@ -133,7 +127,7 @@ public final class MchKeybinds {
         // Client pre-gate uses the SYNCED dispenser state (flareDispenserIdle) — canDeployFlare() reads the server-only
         // flareInfo and would always read idle on the client — to avoid spamming during cooldown; server re-checks.
         if (flare && seat >= 0 && seat <= 1 && v.haveFlare() && v.flareDispenserIdle()) {
-            PacketDistributor.sendToServer(new ServerboundUseFlarePayload(v.getId()));
+            net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(new ServerboundUseFlarePayload(v.getId()));
         }
 
         // Reference commonPlayerControl:66-93. FreeLook held turns the seat keys into "leave your seat":
@@ -149,7 +143,7 @@ public final class MchKeybinds {
         // or unfolds the rotor (reference KeyExtra) while parked — the server re-checks canSwitchFoldBlades.
         if (gui) {
             if (pilot) {
-                PacketDistributor.sendToServer(ServerboundVehicleGuiPayload.open(v.getId()));
+                net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(ServerboundVehicleGuiPayload.open(v.getId()));
             } else {
                 send(v, ServerboundSeatSwitchPayload.NEXT);
             }
@@ -157,10 +151,10 @@ public final class MchKeybinds {
             if (!pilot) {
                 send(v, ServerboundSeatSwitchPayload.PREV);
             } else if (v instanceof MchHelicopter h && h.canSwitchFoldBlades()) {
-                PacketDistributor.sendToServer(new ServerboundFoldBladePayload(v.getId()));
+                net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(new ServerboundFoldBladePayload(v.getId()));
             } else if (v instanceof mcheli.dependent.entity.MchPlane p && p.canSwitchVtol()) {
                 // Reference shares KeyExtra between heli rotor-fold and plane VTOL — the pilot toggles the nozzle.
-                PacketDistributor.sendToServer(new mcheli.dependent.control.ServerboundVtolPayload(v.getId()));
+                net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(new mcheli.dependent.control.ServerboundVtolPayload(v.getId()));
             }
         }
     }
@@ -174,6 +168,6 @@ public final class MchKeybinds {
     }
 
     private static void send(AbstractMchVehicle v, int action) {
-        PacketDistributor.sendToServer(new ServerboundSeatSwitchPayload(v.getId(), action));
+        net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(new ServerboundSeatSwitchPayload(v.getId(), action));
     }
 }

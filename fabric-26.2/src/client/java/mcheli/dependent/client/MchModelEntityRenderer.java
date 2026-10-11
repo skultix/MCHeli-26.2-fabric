@@ -23,13 +23,14 @@ import net.minecraft.world.entity.Entity;
 import org.joml.Quaternionf;
 import mcheli.dependent.entity.AbstractMchVehicle;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.rendertype.RenderType;
+import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
+import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
+import net.minecraft.world.phys.AABB;
 import org.slf4j.Logger;
 
 /**
@@ -42,7 +43,7 @@ import org.slf4j.Logger;
  * {@code .mqo} parser already divides vertices by 100 into world units. The cockpit glass/canopy groups are dropped
  * (their texture is opaque, so they'd wall off the pilot's view). A destroyed wreck renders near-black.
  */
-public abstract class MchModelEntityRenderer<T extends AbstractMchVehicle> extends EntityRenderer<T> {
+public abstract class MchModelEntityRenderer<T extends AbstractMchVehicle> extends EntityRenderer<T, MchVehicleRenderState> {
     private static final Logger LOGGER = LogUtils.getLogger();
 
     /** Resource directory for this category's models/textures ({@code helicopters}/{@code planes}/{@code tanks}/{@code vehicles}). */
@@ -85,7 +86,6 @@ public abstract class MchModelEntityRenderer<T extends AbstractMchVehicle> exten
         return java.util.Collections.emptySet();
     }
 
-    @Override
     public Identifier getTextureLocation(T entity) {
         String tex = entity.skinTextureName();
         if (tex == null || tex.isEmpty()) {
@@ -108,8 +108,47 @@ public abstract class MchModelEntityRenderer<T extends AbstractMchVehicle> exten
     }
 
     @Override
-    public void render(T entity, float entityYaw, float partialTick, PoseStack pose, MultiBufferSource buffers,
-                       int packedLight) {
+    public MchVehicleRenderState createRenderState() {
+        return new MchVehicleRenderState();
+    }
+
+    @Override
+    public void extractRenderState(T entity, MchVehicleRenderState state, float partialTick) {
+        super.extractRenderState(entity, state, partialTick);
+        state.entity = entity;
+        state.partialTick = partialTick;
+        state.yaw = Mth.lerp(partialTick, entity.yRotO, entity.getYRot());
+    }
+
+    /** The collision core is tiny; the entity's own (much larger) culling box keeps the big models from popping. */
+    @Override
+    protected AABB getBoundingBoxForCulling(T entity) {
+        return entity.getBoundingBoxForCulling();
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public void submit(MchVehicleRenderState state, PoseStack pose, SubmitNodeCollector collector,
+                       CameraRenderState camera) {
+        T entity = (T) state.entity;
+        if (entity != null && model(entity) != null) {
+            float partialTick = state.partialTick;
+            float entityYaw = state.yaw;
+            int packedLight = state.lightCoords;
+            // The whole model draws in ONE blended pass (see drawModel), so one custom-geometry node per vehicle.
+            collector.submitCustomGeometry(pose, MchRenderTypes.entityTranslucentCull(getTextureLocation(entity)),
+                (p, consumer) -> {
+                    PoseStack ps = new PoseStack();
+                    ps.last().set(p);
+                    drawModel(entity, entityYaw, partialTick, ps, consumer, packedLight);
+                });
+        }
+        super.submit(state, pose, collector, camera);
+    }
+
+    /** The 1.21.1 {@code render} body: the transformed hull + declared parts + animated parts, into one consumer. */
+    private void drawModel(T entity, float entityYaw, float partialTick, PoseStack pose, VertexConsumer consumer,
+                           int packedLight) {
         MchModel model = model(entity);
         if (model != null) {
             pose.pushPose();
@@ -132,7 +171,7 @@ public abstract class MchModelEntityRenderer<T extends AbstractMchVehicle> exten
             // GLASS is translucent purely from the body texture's ALPHA channel (glass texels have alpha < 1), NOT from
             // any material or name — so entityTranslucentCull (alpha-blend + backface cull + depth-write) reproduces it
             // exactly. The old entityCutoutNoCull alpha-TESTED (binary), rendering any glass texel fully opaque.
-            VertexConsumer consumer = buffers.getBuffer(RenderType.entityTranslucentCull(getTextureLocation(entity)));
+            // (26.x: the consumer is the MchRenderTypes.entityTranslucentCull buffer handed to submit's callback.)
             // Destroyed wreck: darken the whole hull to a scorched near-black (reference 0.15·255 ≈ 38).
             int c = entity.isDestroyed() ? 38 : 255;
             Set<String> dynamic = dynamicGroupsLower(entity, model);
@@ -173,7 +212,6 @@ public abstract class MchModelEntityRenderer<T extends AbstractMchVehicle> exten
             }
             pose.popPose();
         }
-        super.render(entity, entityYaw, partialTick, pose, buffers, packedLight);
     }
 
     /** Config {@code HideGM} weapon groups ({@code $weaponN}) — hidden ONLY for the LOCAL player piloting this vehicle in

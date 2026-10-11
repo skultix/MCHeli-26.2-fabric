@@ -4,12 +4,9 @@ import mcheli.dependent.particle.MchExplodeOptions;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.particle.Particle;
 import net.minecraft.client.particle.ParticleProvider;
-import net.minecraft.client.particle.ParticleRenderType;
 import net.minecraft.client.particle.SpriteSet;
-import net.minecraft.client.particle.TextureSheetParticle;
+import net.minecraft.client.particle.SingleQuadParticle;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 
 /**
  * The MCHeli big explosion fireball — a faithful port of {@code MCH_EntityParticleExplode}: a stationary, camera-facing,
@@ -19,15 +16,13 @@ import net.neoforged.api.distmarker.OnlyIn;
  * getters (so no image-split tooling is needed). Several of these, spread over the blast, give the 46cm's enormous
  * rolling fireball the tiny vanilla {@code EXPLOSION_EMITTER} could never.
  */
-@OnlyIn(Dist.CLIENT)
-public class MchExplodeParticle extends TextureSheetParticle {
+public class MchExplodeParticle extends SingleQuadParticle {
 
     private TextureAtlasSprite sheet;
     private int frame; // 0..15 within the 4×4 grid, advanced by age
 
     protected MchExplodeParticle(ClientLevel level, double x, double y, double z, MchExplodeOptions o, SpriteSet sprites) {
-        super(level, x, y, z);
-        this.setSprite(sprites.get(0, 1)); // the single 128×128 explosion sprite
+        super(level, x, y, z, sprites.get(0, 1)); // the single 128×128 explosion sprite
         this.sheet = this.sprite;
         int argb = o.argb();
         this.alpha = ((argb >>> 24) & 0xFF) / 255.0F;
@@ -42,12 +37,12 @@ public class MchExplodeParticle extends TextureSheetParticle {
     }
 
     @Override
-    public ParticleRenderType getRenderType() {
-        return ParticleRenderType.PARTICLE_SHEET_TRANSLUCENT;
+    protected Layer getLayer() {
+        return Layer.TRANSLUCENT;
     }
 
     @Override
-    public int getLightColor(float partialTick) {
+    protected int getLightCoords(float partialTick) {
         return 0xF000F0; // fullbright — the reference setBrightness(15728880)
     }
 
@@ -85,8 +80,6 @@ public class MchExplodeParticle extends TextureSheetParticle {
     protected float getV1() {
         return this.sheet.getV0() + vSpan() * ((this.frame / 4 + 1) / 4.0F);
     }
-
-    @OnlyIn(Dist.CLIENT)
     public static class Provider implements ParticleProvider<MchExplodeOptions> {
         private final SpriteSet sprites;
 
@@ -96,7 +89,7 @@ public class MchExplodeParticle extends TextureSheetParticle {
 
         @Override
         public Particle createParticle(MchExplodeOptions options, ClientLevel level, double x, double y, double z,
-                                       double xd, double yd, double zd) {
+                                       double xd, double yd, double zd, net.minecraft.util.RandomSource random) {
             return new MchExplodeParticle(level, x, y, z, options, this.sprites);
         }
     }

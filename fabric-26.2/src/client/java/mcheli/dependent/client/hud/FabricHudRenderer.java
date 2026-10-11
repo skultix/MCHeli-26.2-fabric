@@ -1,8 +1,5 @@
 package mcheli.dependent.client.hud;
 
-import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.VertexConsumer;
-import com.mojang.math.Axis;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
@@ -11,14 +8,18 @@ import mcheli.agnostic.hud.HudRenderer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.renderer.rendertype.RenderType;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.resources.Identifier;
-import org.joml.Matrix4f;
+import org.joml.Matrix3x2fStack;
 
 /**
  * {@link HudRenderer} over {@link GuiGraphicsExtractor}: text with shadow, filled rects, textured quads from
  * {@code mcheli:textures/gui/<name>.png}, and — since GuiGraphicsExtractor has no line primitive — lines drawn as thin rotated
- * {@code fill} quads via the pose stack (so diagonal reticle/ladder lines work too).
+ * {@code fill} quads via the 2D pose stack (so diagonal reticle/ladder lines work too).
+ *
+ * <p>26.x: the GUI pose is a {@link Matrix3x2fStack} and draws are queued as GUI render-state elements (no buffer
+ * source), so a segment is a {@code fill} in a translated+rotated frame — still one solid float-space quad.
+
  */
 public final class FabricHudRenderer implements HudRenderer {
 
@@ -58,12 +59,18 @@ public final class FabricHudRenderer implements HudRenderer {
         this.font = font;
     }
 
+    /** 1.21.1 fonts drew a colour whose top 6 bits are clear (e.g. {@code 0xFFFFFF}) OPAQUE; 26.x draws it invisible,
+     *  so restore the old rule for config colours written without alpha. */
+    public static int textColor(int argb) {
+        return (argb & 0xFC000000) == 0 ? argb | 0xFF000000 : argb;
+    }
+
     @Override
     public void string(String text, int x, int y, int argb, boolean centered) {
         if (centered) {
-            g.drawCenteredString(this.font, text, x, y, argb);
+            g.centeredText(this.font, text, x, y, textColor(argb));
         } else {
-            g.drawString(this.font, text, x, y, argb, true);
+            g.text(this.font, text, x, y, textColor(argb), true);
         }
     }
 
@@ -96,23 +103,17 @@ public final class FabricHudRenderer implements HudRenderer {
         if (len < 1.0e-6) {
             return;
         }
-        // A filled parallelogram between the endpoints, offset ±half-thickness along the perpendicular, in FLOAT
-        // coords. This replaces the old "rotated 1px g.fill" — integer rounding + a thin rotated axis-aligned fill
-        // rasterized diagonal and connected lines as broken/dotted; a real quad in float space renders them solid.
-        double half = Math.max(1.0F, width) / 2.0;
-        double px = -dy / len * half;
-        double py = dx / len * half;
-        Matrix4f m = g.pose().last().pose(); // includes any active graduation rotation
-        VertexConsumer vc = g.bufferSource().getBuffer(RenderType.gui());
-        // Same vertex winding as GuiGraphicsExtractor.fill (so it is not culled and batches with the other GUI quads).
-        vertex(vc, m, x1 + px, y1 + py, argb);
-        vertex(vc, m, x2 + px, y2 + py, argb);
-        vertex(vc, m, x2 - px, y2 - py, argb);
-        vertex(vc, m, x1 - px, y1 - py, argb);
-    }
-
-    private static void vertex(VertexConsumer vc, Matrix4f m, double x, double y, int argb) {
-        vc.addVertex(m, (float) x, (float) y, 0.0F).setColor(argb);
+        // A filled rectangle along the segment, offset -half-thickness across it: translate to the start, rotate onto
+        // the segment direction, fill [0, len] x [0, thickness]. The rotation lives in the pose, so the quad is drawn
+        // solid in float space (the old "rotated 1px fill at integer coords" rasterized diagonals as dotted).
+        float thickness = Math.max(1.0F, width);
+        Matrix3x2fStack pose = g.pose();
+        pose.pushMatrix();
+        pose.translate((float) x1, (float) y1);
+        pose.rotate((float) Math.atan2(dy, dx));
+        pose.translate(0.0F, -thickness / 2.0F);
+        g.fill(0, 0, Math.max(1, (int) Math.round(len)), Math.max(1, Math.round(thickness)), argb);
+        pose.popMatrix();
     }
 
     @Override
@@ -129,16 +130,16 @@ public final class FabricHudRenderer implements HudRenderer {
 
     @Override
     public void pushMatrix(double pivotX, double pivotY, double degrees) {
-        PoseStack pose = g.pose();
-        pose.pushPose();
-        pose.translate(pivotX, pivotY, 0.0);
-        pose.mulPose(Axis.ZP.rotationDegrees((float) degrees));
-        pose.translate(-pivotX, -pivotY, 0.0);
+        Matrix3x2fStack pose = g.pose();
+        pose.pushMatrix();
+        pose.translate((float) pivotX, (float) pivotY);
+        pose.rotate((float) Math.toRadians(degrees));
+        pose.translate((float) -pivotX, (float) -pivotY);
     }
 
     @Override
     public void popMatrix() {
-        g.pose().popPose();
+        g.pose().popMatrix();
     }
 
     @Override
@@ -181,18 +182,18 @@ public final class FabricHudRenderer implements HudRenderer {
     public void texture(String name, double x, double y, double w, double h, double u, double v, double uw, double vh,
                         double rot) {
         Identifier rl = Identifier.fromNamespaceAndPath(MCHeli.MODID, "textures/gui/" + name + ".png");
-        PoseStack pose = g.pose();
-        pose.pushPose();
+        Matrix3x2fStack pose = g.pose();
+        pose.pushMatrix();
         double cx = x + w / 2.0;
         double cy = y + h / 2.0;
-        pose.translate(cx, cy, 0.0);
+        pose.translate((float) cx, (float) cy);
         if (rot != 0.0) {
-            pose.mulPose(Axis.ZP.rotationDegrees((float) rot));
+            pose.rotate((float) Math.toRadians(rot));
         }
-        pose.translate(-w / 2.0, -h / 2.0, 0.0);
+        pose.translate((float) (-w / 2.0), (float) (-h / 2.0));
         int[] d = dims(name); // real sheet size for correct UV normalization (not a hardcoded width/height)
-        g.blit(rl, 0, 0, (int) Math.round(w), (int) Math.round(h),
-            (float) u, (float) v, (int) Math.round(uw), (int) Math.round(vh), d[0], d[1]);
-        pose.popPose();
+        g.blit(RenderPipelines.GUI_TEXTURED, rl, 0, 0, (float) u, (float) v, (int) Math.round(w), (int) Math.round(h),
+            (int) Math.round(uw), (int) Math.round(vh), d[0], d[1]);
+        pose.popMatrix();
     }
 }

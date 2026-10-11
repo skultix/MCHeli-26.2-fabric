@@ -9,11 +9,8 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.Player;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent;
-import net.neoforged.neoforge.client.gui.VanillaGuiLayers;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
 
 /**
  * Draws the targeted vehicle's HP bar below the crosshair while the player holds the wrench and looks at an MCHeli
@@ -21,17 +18,14 @@ import net.neoforged.neoforge.client.gui.VanillaGuiLayers;
  * repair tick uses ({@link MchWrench#mouseOverVehicle}); the bar goes green above 30% HP, red below, with an {@code N %}
  * readout underneath. The colour constants are the reference's exact ARGB ints.
  */
-@EventBusSubscriber(modid = MCHeli.MODID, value = Dist.CLIENT)
 public final class MchWrenchOverlay {
     private MchWrenchOverlay() {}
 
     private static final int COLOR_HIGH = -14101432; // teal-green (HP fraction > 0.3)
     private static final int COLOR_LOW = -2161656;   // red
     private static final int COLOR_BG = -15433180;   // dark backing
-
-    @SubscribeEvent
-    public static void onRegisterGuiLayers(RegisterGuiLayersEvent event) {
-        event.registerAbove(VanillaGuiLayers.CROSSHAIR,
+    public static void register() {
+        HudElementRegistry.attachElementAfter(VanillaHudElements.CROSSHAIR,
             Identifier.fromNamespaceAndPath(MCHeli.MODID, "wrench_hp"),
             MchWrenchOverlay::render);
     }
@@ -39,7 +33,7 @@ public final class MchWrenchOverlay {
     private static void render(GuiGraphicsExtractor g, DeltaTracker delta) {
         Minecraft mc = Minecraft.getInstance();
         Player player = mc.player;
-        if (player == null || mc.options.hideGui || mc.options.getCameraType() != CameraType.FIRST_PERSON
+        if (player == null || mc.gui.hud.isHidden() || mc.options.getCameraType() != CameraType.FIRST_PERSON
             || !(player.getMainHandItem().getItem() instanceof MchWrench)) {
             return;
         }
@@ -61,6 +55,6 @@ public final class MchWrenchOverlay {
         if (hp < maxHp && pct >= 100) {
             pct = 99; // never show a full 100% while any damage remains (reference)
         }
-        g.drawCenteredString(mc.font, String.format("%d %%", pct), cx, posY + 30, color);
+        g.centeredText(mc.font, String.format("%d %%", pct), cx, posY + 30, FabricHudRenderer.textColor(color));
     }
 }

@@ -9,29 +9,26 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.Entity;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent;
-import net.neoforged.neoforge.client.event.RenderGuiLayerEvent;
-import net.neoforged.neoforge.client.gui.VanillaGuiLayers;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
 
 /**
- * Registers the MCHeli cockpit HUD as a GUI layer above the crosshair. It fires only while the in-game HUD renders (no
- * full screen open — the {@link net.minecraft.client.gui.LayeredDraw.Layer} contract) and, when the local player is
+ * Registers the MCHeli cockpit HUD as a HUD element after the crosshair. It runs only while the in-game HUD renders and, when the local player is
  * riding an {@link AbstractMchVehicle}, resolves that vehicle's pilot HUD config, builds a {@link MchHudVarState} from
  * the live entity, and draws it through {@link FabricHudRenderer}. Everything shown is config-driven from the vehicle's
  * {@code HUD =} list + the {@code hud/*.txt} definitions.
  */
-@EventBusSubscriber(modid = MCHeli.MODID, value = Dist.CLIENT)
 public final class MchHudOverlay {
     private MchHudOverlay() {}
-
-    @SubscribeEvent
-    public static void onRegisterGuiLayers(RegisterGuiLayersEvent event) {
-        event.registerAbove(VanillaGuiLayers.CROSSHAIR,
-            Identifier.fromNamespaceAndPath(MCHeli.MODID, "vehicle_hud"),
-            MchHudOverlay::render);
+    public static void register() {
+        HudElementRegistry.attachElementAfter(VanillaHudElements.CROSSHAIR,
+            Identifier.fromNamespaceAndPath(MCHeli.MODID, "vehicle_hud"), MchHudOverlay::render);
+        // NeoForge cancelled RenderGuiLayerEvent.Pre for the crosshair layer; Fabric wraps the vanilla element instead.
+        HudElementRegistry.replaceElement(VanillaHudElements.CROSSHAIR, vanilla -> (g, deltaTracker) -> {
+            if (!hidesVanillaCrosshair()) {
+                vanilla.extractRenderState(g, deltaTracker);
+            }
+        });
     }
 
     /**
@@ -39,22 +36,16 @@ public final class MchHudOverlay {
      * reticle (the {@code common_pilot} crosshair), so the vanilla white {@code +} would just be a stray, unconfigured
      * element sitting in its centre. This mirrors the reference, which renders its HUD in place of the vanilla one.
      */
-    @SubscribeEvent
-    public static void onRenderGuiLayer(RenderGuiLayerEvent.Pre event) {
-        if (!event.getName().equals(VanillaGuiLayers.CROSSHAIR)) {
-            return;
-        }
+    private static boolean hidesVanillaCrosshair() {
         Minecraft mc = Minecraft.getInstance();
-        if (mc.player != null
+        return mc.player != null
             && mc.player.getVehicle() instanceof AbstractMchVehicle vehicle
-            && vehicle.hudName(Math.max(0, vehicle.seatIndexOf(mc.player))) != null) {
-            event.setCanceled(true);
-        }
+            && vehicle.hudName(Math.max(0, vehicle.seatIndexOf(mc.player))) != null;
     }
 
     private static void render(GuiGraphicsExtractor g, DeltaTracker deltaTracker) {
         Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null || mc.options.hideGui) {
+        if (mc.player == null || mc.gui.hud.isHidden()) {
             return;
         }
         Entity ridden = mc.player.getVehicle();
@@ -75,6 +66,5 @@ public final class MchHudOverlay {
         float partialTick = deltaTracker.getGameTimeDeltaPartialTick(false); // smooths the radar sweep line
         MchHudVarState state = new MchHudVarState(vehicle, mc.player, g.guiWidth(), g.guiHeight(), partialTick);
         hud.draw(new FabricHudRenderer(g, mc.font), state, MCH_HudManager::get);
-        g.setColor(1.0F, 1.0F, 1.0F, 1.0F); // reset in case a textured needle left a tint
     }
 }

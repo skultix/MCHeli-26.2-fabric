@@ -4,11 +4,8 @@ import mcheli.dependent.particle.MuzzleFxOptions;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.particle.Particle;
 import net.minecraft.client.particle.ParticleProvider;
-import net.minecraft.client.particle.ParticleRenderType;
 import net.minecraft.client.particle.SpriteSet;
-import net.minecraft.client.particle.TextureSheetParticle;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
+import net.minecraft.client.particle.SingleQuadParticle;
 
 /**
  * The MCHeli weapon "fx" particle: a soft, fullbright, camera-facing puff whose colour, size and lifetime are all taken
@@ -21,15 +18,14 @@ import net.neoforged.api.distmarker.OnlyIn;
  * smoke; here both use vanilla's soft {@code generic} sprites, so the exact sheet animation is approximated while the
  * config-driven colour/size/lifetime are exact.
  */
-@OnlyIn(Dist.CLIENT)
-public class MuzzleFxParticle extends TextureSheetParticle {
+public class MuzzleFxParticle extends SingleQuadParticle {
 
     private final SpriteSet sprites;
     private final float baseAlpha;
 
     protected MuzzleFxParticle(ClientLevel level, double x, double y, double z, double xd, double yd, double zd,
                                MuzzleFxOptions o, SpriteSet sprites) {
-        super(level, x, y, z);
+        super(level, x, y, z, sprites.get(0, 1));
         this.sprites = sprites;
         int argb = o.argb();
         this.baseAlpha = ((argb >>> 24) & 0xFF) / 255.0F;
@@ -49,12 +45,12 @@ public class MuzzleFxParticle extends TextureSheetParticle {
     }
 
     @Override
-    public ParticleRenderType getRenderType() {
-        return ParticleRenderType.PARTICLE_SHEET_TRANSLUCENT;
+    protected Layer getLayer() {
+        return Layer.TRANSLUCENT;
     }
 
     @Override
-    public int getLightColor(float partialTick) {
+    protected int getLightCoords(float partialTick) {
         return 0xF000F0; // fullbright — matches the reference's setBrightness(15728880)
     }
 
@@ -64,8 +60,6 @@ public class MuzzleFxParticle extends TextureSheetParticle {
         this.setSpriteFromAge(this.sprites);
         this.alpha = this.baseAlpha * (1.0F - (float) this.age / (float) this.lifetime);
     }
-
-    @OnlyIn(Dist.CLIENT)
     public static class Provider implements ParticleProvider<MuzzleFxOptions> {
         private final SpriteSet sprites;
 
@@ -75,7 +69,7 @@ public class MuzzleFxParticle extends TextureSheetParticle {
 
         @Override
         public Particle createParticle(MuzzleFxOptions options, ClientLevel level, double x, double y, double z,
-                                       double xd, double yd, double zd) {
+                                       double xd, double yd, double zd, net.minecraft.util.RandomSource random) {
             return new MuzzleFxParticle(level, x, y, z, xd, yd, zd, options, this.sprites);
         }
     }

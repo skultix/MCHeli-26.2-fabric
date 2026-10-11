@@ -73,6 +73,10 @@ public final class MchPackResources extends AbstractPackResources {
         if ("sounds.json".equals(path)) {
             return soundsJsonSupplier();
         }
+        IoSupplier<InputStream> item = itemDefinitionSupplier(path);
+        if (item != null) {
+            return item;
+        }
         Path p = resolveSafe(path);
         return p != null && Files.isRegularFile(p) ? IoSupplier.create(p) : null;
     }
@@ -81,6 +85,15 @@ public final class MchPackResources extends AbstractPackResources {
     public void listResources(PackType type, String namespace, String path, ResourceOutput out) {
         if (type != PackType.CLIENT_RESOURCES || !MCHeli.MODID.equals(namespace)) {
             return;
+        }
+        if ("items".equals(path) || "items/".equals(path)) {
+            for (String name : vehicleItemNames()) {
+                Identifier id = Identifier.tryBuild(namespace, "items/" + name + ".json");
+                IoSupplier<InputStream> def = id != null ? itemDefinitionSupplier(id.getPath()) : null;
+                if (def != null) {
+                    out.accept(id, def);
+                }
+            }
         }
         Path base = resolveSafe(path);
         if (base == null || !Files.isDirectory(base)) {
@@ -122,6 +135,47 @@ public final class MchPackResources extends AbstractPackResources {
             .map(n -> "  \"" + n + "\": { \"sounds\": [\"mcheli:" + n + "\"] }")
             .collect(Collectors.joining(",\n", "{\n", "\n}\n")));
         return () -> new ByteArrayInputStream(json);
+    }
+
+    /** 26.x client item definitions: every pack vehicle that became a spawn item renders its 3D model icon through the
+     *  {@code mcheli:vehicle} special model, exactly like a bundled vehicle's static {@code items/<name>.json}. A pack may
+     *  ship its own definition file, which wins. */
+    private IoSupplier<InputStream> itemDefinitionSupplier(String path) {
+        if (!path.startsWith("items/") || !path.endsWith(".json")) {
+            return null;
+        }
+        Path shipped = resolveSafe(path);
+        if (shipped != null && Files.isRegularFile(shipped)) {
+            return IoSupplier.create(shipped);
+        }
+        String name = path.substring("items/".length(), path.length() - ".json".length());
+        if (!vehicleItemNames().contains(name)) {
+            return null;
+        }
+        byte[] json = bytes("{\"model\":{\"type\":\"minecraft:special\",\"base\":\"mcheli:item/vehicle\","
+            + "\"model\":{\"type\":\"mcheli:vehicle\"}}}");
+        return () -> new ByteArrayInputStream(json);
+    }
+
+    /** Lower-cased config names in this pack's vehicle category dirs that registered as spawn items. */
+    private Set<String> vehicleItemNames() {
+        Set<String> out = new java.util.TreeSet<>();
+        for (mcheli.dependent.registry.MchRegistries.Category cat : mcheli.dependent.registry.MchRegistries.Category.values()) {
+            Path dir = resolveSafe(cat.dir);
+            if (dir == null || !Files.isDirectory(dir)) {
+                continue;
+            }
+            try (Stream<Path> s = Files.list(dir)) {
+                s.map(p -> p.getFileName().toString())
+                    .filter(f -> f.endsWith(".txt"))
+                    .map(f -> f.substring(0, f.length() - 4).toLowerCase(java.util.Locale.ROOT))
+                    .filter(n -> mcheli.dependent.registry.MchRegistries.spawnItemFor(n) != null)
+                    .forEach(out::add);
+            } catch (IOException ignored) {
+                // unreadable dir -> no synthesized definitions
+            }
+        }
+        return out;
     }
 
     /** Resolve a namespace-relative path under the content root, rejecting any {@code ..} traversal outside it. */

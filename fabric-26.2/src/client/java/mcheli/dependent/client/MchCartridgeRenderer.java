@@ -6,10 +6,10 @@ import mcheli.MCHeli;
 import mcheli.agnostic.model.MchModel;
 import mcheli.agnostic.spi.ModelHandle;
 import mcheli.dependent.entity.MchCartridge;
-import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.rendertype.RenderType;
-import net.minecraft.client.renderer.entity.EntityRenderer;
+import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
+import net.minecraft.client.renderer.rendertype.RenderTypes;
+import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
@@ -20,7 +20,7 @@ import net.minecraft.util.Mth;
  * the reference {@code MCH_RenderCartridge}). Unlike the bullet tracer this is an opaque, <b>normally-lit</b>,
  * <b>untinted</b> 3D model — the brass colour comes from the texture, and cartridges carry no colour config.
  */
-public class MchCartridgeRenderer extends EntityRenderer<MchCartridge> {
+public class MchCartridgeRenderer extends MchSimpleRenderer<MchCartridge> {
 
     public MchCartridgeRenderer(EntityRendererProvider.Context context) {
         super(context);
@@ -28,13 +28,9 @@ public class MchCartridgeRenderer extends EntityRenderer<MchCartridge> {
     }
 
     @Override
-    public Identifier getTextureLocation(MchCartridge entity) {
-        return Identifier.fromNamespaceAndPath(MCHeli.MODID, "textures/bullets/" + entity.cartridgeName() + ".png");
-    }
-
-    @Override
-    public void render(MchCartridge entity, float entityYaw, float partialTick, PoseStack pose,
-                       MultiBufferSource buffers, int packedLight) {
+    public void submit(State<MchCartridge> state, PoseStack pose, SubmitNodeCollector collector, CameraRenderState camera) {
+        MchCartridge entity = state.entity;
+        float partialTick = state.partialTick;
         String name = entity.cartridgeName();
         ModelHandle h = name.isEmpty() ? null : mcheli.dependent.port.MchContentPacks.resources().loadModel("bullets/" + name);
         if (h instanceof MchModel model) {
@@ -45,10 +41,12 @@ public class MchCartridgeRenderer extends EntityRenderer<MchCartridge> {
             float pitch = Mth.lerp(partialTick, entity.xRotO, entity.getXRot());
             pose.mulPose(Axis.YP.rotationDegrees(-yaw)); // reference negates the render yaw
             pose.mulPose(Axis.XP.rotationDegrees(pitch));
-            MchModelRenderer.render(model, pose, buffers.getBuffer(RenderType.entityCutoutNoCull(getTextureLocation(entity))),
-                packedLight, OverlayTexture.NO_OVERLAY, 255, 255, 255, 255);
+            Identifier tex = Identifier.fromNamespaceAndPath(MCHeli.MODID, "textures/bullets/" + name + ".png");
+            int light = state.lightCoords;
+            submitGeometry(pose, collector, RenderTypes.entityCutout(tex), (ps, consumer) ->
+                MchModelRenderer.render(model, ps, consumer, light, OverlayTexture.NO_OVERLAY, 255, 255, 255, 255));
             pose.popPose();
         }
-        super.render(entity, entityYaw, partialTick, pose, buffers, packedLight);
+        super.submit(state, pose, collector, camera);
     }
 }

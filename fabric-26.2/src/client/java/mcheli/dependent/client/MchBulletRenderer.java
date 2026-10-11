@@ -12,10 +12,10 @@ import net.minecraft.client.model.geom.PartPose;
 import net.minecraft.client.model.geom.builders.CubeListBuilder;
 import net.minecraft.client.model.geom.builders.LayerDefinition;
 import net.minecraft.client.model.geom.builders.MeshDefinition;
-import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.rendertype.RenderType;
-import net.minecraft.client.renderer.entity.EntityRenderer;
+import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
+import net.minecraft.client.renderer.rendertype.RenderTypes;
+import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.resources.Identifier;
 
@@ -29,10 +29,10 @@ import net.minecraft.resources.Identifier;
  * <p>If the model can't be resolved (empty/unknown name, or a parse miss) it falls back to a small full-bright tracer
  * cube so the projectile is never invisible.
  */
-public class MchBulletRenderer extends EntityRenderer<MchBullet> {
-
+public class MchBulletRenderer extends MchSimpleRenderer<MchBullet> {
     private static final Identifier TRACER_TEXTURE =
         Identifier.fromNamespaceAndPath("minecraft", "textures/block/glowstone.png");
+    private static final int FULL_BRIGHT = 0xF000F0;
 
     private final ModelPart tracer;
 
@@ -45,26 +45,14 @@ public class MchBulletRenderer extends EntityRenderer<MchBullet> {
     }
 
     @Override
-    public Identifier getTextureLocation(MchBullet entity) {
-        String name = entity.bulletModelName();
-        return name.isEmpty()
-            ? TRACER_TEXTURE
-            : Identifier.fromNamespaceAndPath(MCHeli.MODID, "textures/bullets/" + name + ".png");
-    }
-
-    @Override
-    public void render(MchBullet entity, float entityYaw, float partialTick, PoseStack pose, MultiBufferSource buffers,
-                       int packedLight) {
+    public void submit(State<MchBullet> state, PoseStack pose, SubmitNodeCollector collector, CameraRenderState camera) {
+        MchBullet entity = state.entity;
         String name = entity.bulletModelName();
         MchModel model = resolve(name);
-
         pose.pushPose();
         // Orient the model +Z along the flight path (yaw/pitch are kept current from the motion each tick).
-        float yaw = entity.getYRot();
-        float pitch = entity.getXRot();
-        pose.mulPose(Axis.YP.rotationDegrees(-yaw));
-        pose.mulPose(Axis.XP.rotationDegrees(pitch));
-
+        pose.mulPose(Axis.YP.rotationDegrees(-entity.getYRot()));
+        pose.mulPose(Axis.XP.rotationDegrees(entity.getXRot()));
         if (model != null) {
             int color = entity.bulletColor();
             int a = (color >>> 24) & 0xFF;
@@ -72,19 +60,18 @@ public class MchBulletRenderer extends EntityRenderer<MchBullet> {
             int g = (color >>> 8) & 0xFF;
             int b = color & 0xFF;
             Identifier tex = Identifier.fromNamespaceAndPath(MCHeli.MODID, "textures/bullets/" + name + ".png");
-            MchModelRenderer.render(model, pose, buffers.getBuffer(RenderType.entityCutoutNoCull(tex)),
-                0xF000F0 /* full-bright */, OverlayTexture.NO_OVERLAY, r, g, b, a);
+            submitGeometry(pose, collector, RenderTypes.entityCutout(tex), (ps, consumer) ->
+                MchModelRenderer.render(model, ps, consumer, FULL_BRIGHT, OverlayTexture.NO_OVERLAY, r, g, b, a));
         } else {
             // Fallback tracer: a tiny full-bright cube so an unresolved model still reads as a streak.
             pose.scale(1.0F / 16.0F, 1.0F / 16.0F, 1.0F / 16.0F);
-            this.tracer.render(pose, buffers.getBuffer(RenderType.entityCutoutNoCull(TRACER_TEXTURE)),
-                0xF000F0, OverlayTexture.NO_OVERLAY);
+            submitGeometry(pose, collector, RenderTypes.entityCutout(TRACER_TEXTURE), (ps, consumer) ->
+                this.tracer.render(ps, consumer, FULL_BRIGHT, OverlayTexture.NO_OVERLAY));
         }
         pose.popPose();
-        super.render(entity, entityYaw, partialTick, pose, buffers, packedLight);
+        super.submit(state, pose, collector, camera);
     }
 
-    /** Resolve the bullet model by name via the shared cache, or null if the name is empty / unparseable. */
     private static MchModel resolve(String name) {
         if (name == null || name.isEmpty()) {
             return null;

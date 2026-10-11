@@ -1,65 +1,36 @@
 package mcheli.dependent.client;
 
-import mcheli.MCHeli;
 import mcheli.dependent.client.particle.MuzzleFxParticle;
-import mcheli.dependent.item.VehicleSpawnItem;
 import mcheli.dependent.registry.MchRegistries;
-import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
-import net.minecraft.world.item.Item;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.EntityRenderersEvent;
-import net.neoforged.neoforge.client.event.RegisterParticleProvidersEvent;
-import net.neoforged.neoforge.client.extensions.common.IClientItemExtensions;
-import net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsEvent;
+import net.fabricmc.fabric.api.client.particle.v1.ParticleProviderRegistry;
+import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
+import net.minecraft.client.gui.screens.MenuScreens;
 
 /**
- * Client-only subscriber for renderer registration. The {@code value = Dist.CLIENT} filter means FML never loads
- * this class (or the renderers it references) on a dedicated server, so the server stays free of client-only types.
- * The bus is auto-detected per event ({@code RegisterRenderers} is a mod-bus event). The game-bus rider-input
- * capture lives in {@link MchClientInput}.
+ * Client-side registration of the renderers, the riding-GUI screen and the particle providers — the port of the
+ * NeoForge {@code EntityRenderersEvent}/{@code RegisterMenuScreensEvent}/{@code RegisterParticleProvidersEvent}
+ * subscribers. Called from {@link mcheli.MCHeliClient}; lives in the client source set, so a dedicated server never
+ * loads it (or the renderers it references).
  */
-@EventBusSubscriber(modid = MCHeli.MODID, value = Dist.CLIENT)
 public final class MchClientEvents {
     private MchClientEvents() {}
 
-    @SubscribeEvent
-    public static void onRegisterRenderers(EntityRenderersEvent.RegisterRenderers event) {
-        event.registerEntityRenderer(MchRegistries.VEHICLE.get(), MchGroundVehicleRenderer::new);
-        event.registerEntityRenderer(MchRegistries.HELI.get(), MchHelicopterRenderer::new);
-        event.registerEntityRenderer(MchRegistries.PLANE.get(), MchPlaneRenderer::new);
-        event.registerEntityRenderer(MchRegistries.TANK.get(), MchTankRenderer::new);
-        event.registerEntityRenderer(MchRegistries.DEMO_BULLET.get(), MchBulletRenderer::new);
-        event.registerEntityRenderer(MchRegistries.CARTRIDGE.get(), MchCartridgeRenderer::new);
-        event.registerEntityRenderer(MchRegistries.CONTAINER.get(), MchContainerRenderer::new);
-        event.registerEntityRenderer(MchRegistries.FLARE.get(), MchFlareRenderer::new);
-    }
+    public static void register() {
+        EntityRendererRegistry.register(MchRegistries.VEHICLE.get(), MchGroundVehicleRenderer::new);
+        EntityRendererRegistry.register(MchRegistries.HELI.get(), MchHelicopterRenderer::new);
+        EntityRendererRegistry.register(MchRegistries.PLANE.get(), MchPlaneRenderer::new);
+        EntityRendererRegistry.register(MchRegistries.TANK.get(), MchTankRenderer::new);
+        EntityRendererRegistry.register(MchRegistries.DEMO_BULLET.get(), MchBulletRenderer::new);
+        EntityRendererRegistry.register(MchRegistries.CARTRIDGE.get(), MchCartridgeRenderer::new);
+        EntityRendererRegistry.register(MchRegistries.CONTAINER.get(), MchContainerRenderer::new);
+        EntityRendererRegistry.register(MchRegistries.FLARE.get(), MchFlareRenderer::new);
 
-    /** The riding GUI (fuel slots + reload) — bound to the menu type registered in {@link MchRegistries}. */
-    @SubscribeEvent
-    public static void onRegisterScreens(net.neoforged.neoforge.client.event.RegisterMenuScreensEvent event) {
-        event.register(MchRegistries.VEHICLE_MENU.get(), mcheli.dependent.client.screen.MchVehicleScreen::new);
-    }
+        // The riding GUI (fuel slots + reload) — bound to the menu type registered in MchRegistries.
+        MenuScreens.register(MchRegistries.VEHICLE_MENU.get(), mcheli.dependent.client.screen.MchVehicleScreen::new);
 
-    @SubscribeEvent
-    public static void onRegisterParticleProviders(RegisterParticleProvidersEvent event) {
-        event.registerSpriteSet(MchRegistries.WEAPON_FX.get(), MuzzleFxParticle.Provider::new);
-        event.registerSpriteSet(MchRegistries.EXPLODE_FX.get(),
-            mcheli.dependent.client.particle.MchExplodeParticle.Provider::new);
-        event.registerSpriteSet(MchRegistries.SMOKE_FX.get(),
-            mcheli.dependent.client.particle.MchSmokeParticle.Provider::new);
-    }
-
-    /** Every vehicle spawn item renders its 3D model as its inventory icon (needs a {@code builtin/entity} item model). */
-    @SubscribeEvent
-    public static void onRegisterClientExtensions(RegisterClientExtensionsEvent event) {
-        VehicleItemRenderer renderer = new VehicleItemRenderer();
-        IClientItemExtensions ext = new IClientItemExtensions() {
-            @Override public BlockEntityWithoutLevelRenderer getCustomRenderer() { return renderer; }
-        };
-        for (VehicleSpawnItem item : MchRegistries.allSpawnItems()) {
-            event.registerItem(ext, item);
-        }
+        ParticleProviderRegistry particles = ParticleProviderRegistry.getInstance();
+        particles.register(MchRegistries.WEAPON_FX.get(), MuzzleFxParticle.Provider::new);
+        particles.register(MchRegistries.EXPLODE_FX.get(), mcheli.dependent.client.particle.MchExplodeParticle.Provider::new);
+        particles.register(MchRegistries.SMOKE_FX.get(), mcheli.dependent.client.particle.MchSmokeParticle.Provider::new);
     }
 }

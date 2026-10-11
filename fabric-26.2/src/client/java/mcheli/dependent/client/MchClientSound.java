@@ -10,10 +10,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.entity.Entity;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.ClientTickEvent;
 
 /**
  * Client-only: keeps a looping {@link VehicleEngineSound} playing for every nearby MCHeli vehicle (the reference runs
@@ -22,7 +18,6 @@ import net.neoforged.neoforge.client.event.ClientTickEvent;
  * from the vehicle's synced engine power. A loop self-stops when its vehicle is removed; this handler also drops loops
  * for vehicles that leave the audible range.
  */
-@EventBusSubscriber(modid = MCHeli.MODID, value = Dist.CLIENT)
 public final class MchClientSound {
     private MchClientSound() {}
 
@@ -30,9 +25,11 @@ public final class MchClientSound {
     private static final double RANGE = 96.0;
 
     private static final Map<Integer, VehicleEngineSound> active = new HashMap<>();
+    public static void register() {
+        net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents.END_CLIENT_TICK.register(MchClientSound::onClientTick);
+    }
 
-    @SubscribeEvent
-    public static void onClientTick(ClientTickEvent.Post event) {
+    public static void onClientTick(net.minecraft.client.Minecraft client) {
         Minecraft mc = Minecraft.getInstance();
         ClientLevel level = mc.level;
         if (level == null || mc.player == null) {

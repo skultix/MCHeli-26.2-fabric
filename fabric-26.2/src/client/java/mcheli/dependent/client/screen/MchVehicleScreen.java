@@ -17,7 +17,6 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.neoforged.neoforge.network.PacketDistributor;
 
 /**
  * The riding GUI — the 1.21.1 port of {@code MCH_AircraftGui}. Same geometry as the reference (210×236, drawn from the
@@ -50,10 +49,8 @@ public class MchVehicleScreen extends AbstractContainerScreen<MchVehicleMenu> {
     private int shownWeapon;
 
     public MchVehicleScreen(MchVehicleMenu menu, Inventory inv, Component title) {
-        super(menu, inv, title);
+        super(menu, inv, title, 210, 236); // 26.x: the panel size is final, set through the constructor
         this.vehicle = menu.vehicle();
-        this.imageWidth = 210;
-        this.imageHeight = 236;
     }
 
     @Override
@@ -86,7 +83,7 @@ public class MchVehicleScreen extends AbstractContainerScreen<MchVehicleMenu> {
 
     private void sendReload() {
         if (this.vehicle != null && canReload()) {
-            PacketDistributor.sendToServer(
+            net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(
                 ServerboundVehicleGuiPayload.reload(this.vehicle.getId(), this.shownWeapon));
             this.reload.active = false; // the server's answer arrives as synced ammo; re-enabled by the tick below
         }
@@ -161,14 +158,15 @@ public class MchVehicleScreen extends AbstractContainerScreen<MchVehicleMenu> {
     }
 
     @Override
-    protected void renderBg(GuiGraphicsExtractor g, float partialTick, int mouseX, int mouseY) {
+    public void extractBackground(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
+        super.extractBackground(g, mouseX, mouseY, partialTick); // the dimmed world behind the panel
         int x = this.leftPos;
         int y = this.topPos;
         // gui.png is a 512×512 sheet whose art is authored at 2× density: the reference draws it with 1.7.10's
         // drawTexturedModalRect, which hard-normalizes UVs by 256, so a (0,0,210,236) blit actually samples the
         // 420×472-texel panel. Reproduce that by passing 256 as the texture size to the 8-arg blit — the (u,v,w,h)
         // are then u/256 of the bound 512px texture, i.e. exactly the reference's texel span.
-        g.blit(TEXTURE, x, y, 0, 0, this.imageWidth, this.imageHeight, 256, 256);
+        g.blit(net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED, TEXTURE, x, y, 0, 0, this.imageWidth, this.imageHeight, 256, 256);
 
         if (this.vehicle == null) {
             return;
@@ -179,32 +177,32 @@ public class MchVehicleScreen extends AbstractContainerScreen<MchVehicleMenu> {
         float fuelP = this.vehicle.getFuelP();
         int fill = (int) (fuelP * 50.0F);
         if (fill > 0) {
-            g.blit(TEXTURE, x + 57, y + 80 - fill, 215, 0, 12, fill, 256, 256);
+            g.blit(net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED, TEXTURE, x + 57, y + 80 - fill, 215, 0, 12, fill, 256, 256);
         }
         int pct = (int) (fuelP * 100.0F + 0.5F);
         int color = pct > 20 ? GREEN : 0xFF0000;
-        g.drawString(this.font, String.format("%3d", pct) + "%", x + 30, y + 65, color, false);
+        g.text(this.font, String.format("%3d", pct) + "%", x + 30, y + 65, mcheli.dependent.client.hud.FabricHudRenderer.textColor(color), false);
     }
 
     @Override
-    protected void renderLabels(GuiGraphicsExtractor g, int mouseX, int mouseY) {
+    protected void extractLabels(GuiGraphicsExtractor g, int mouseX, int mouseY) {
         // Foreground coordinates are container-local (the matrix is already translated by leftPos/topPos).
-        g.drawString(this.font, this.title, 10, 10, 0xFFFFFF, false);
+        g.text(this.font, this.title, 10, 10, mcheli.dependent.client.hud.FabricHudRenderer.textColor(0xFFFFFF), false);
 
         WeaponSlot w = this.vehicle != null ? this.vehicle.weaponAt(this.shownWeapon) : null;
         if (w == null) {
-            g.drawString(this.font, Component.translatable("gui.mcheli.no_weapon"), 79, 45, 0xFFFFFF, false);
+            g.text(this.font, Component.translatable("gui.mcheli.no_weapon"), 79, 45, mcheli.dependent.client.hud.FabricHudRenderer.textColor(0xFFFFFF), false);
             return;
         }
         String name = w.info.displayName != null && !w.info.displayName.isEmpty() ? w.info.displayName : w.weaponName;
-        g.drawString(this.font, name, 79, 30, 0xFFFFFF, false);
+        g.text(this.font, name, 79, 30, mcheli.dependent.client.hud.FabricHudRenderer.textColor(0xFFFFFF), false);
 
         if (w.hasEconomy()) {
             int rest = this.vehicle.ammoOf(this.shownWeapon);
             int max = w.maxAmmo();
             // The reference's three-way colouring: red at empty, green at full, white in between.
             int color = rest == 0 ? 0xFF0000 : (rest >= max ? GREEN : 0xFFFFFF);
-            g.drawString(this.font, String.format("%4d/%4d", rest, max), 145, 70, color, false);
+            g.text(this.font, String.format("%4d/%4d", rest, max), 145, 70, mcheli.dependent.client.hud.FabricHudRenderer.textColor(color), false);
             drawRoundItems(g, w);
         }
     }
@@ -222,17 +220,10 @@ public class MchVehicleScreen extends AbstractContainerScreen<MchVehicleMenu> {
                 continue;
             }
             int ix = 85 + 20 * i;
-            g.renderItem(new ItemStack(item), ix, 62);
+            g.item(new ItemStack(item), ix, 62);
             boolean enough = countHeld(ri) >= ri.num;
-            g.drawString(this.font, Integer.toString(ri.num), ix + 5, 80, enough ? 0xFFFFFF : 0xFF0000, false);
+            g.text(this.font, Integer.toString(ri.num), ix + 5, 80, mcheli.dependent.client.hud.FabricHudRenderer.textColor(enough ? 0xFFFFFF : 0xFF0000), false);
             i++;
         }
-    }
-
-    @Override
-    public void render(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
-        renderBackground(g, mouseX, mouseY, partialTick);
-        super.render(g, mouseX, mouseY, partialTick);
-        renderTooltip(g, mouseX, mouseY);
     }
 }

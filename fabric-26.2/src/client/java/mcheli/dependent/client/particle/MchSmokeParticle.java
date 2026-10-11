@@ -4,12 +4,9 @@ import mcheli.dependent.particle.MchSmokeOptions;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.particle.Particle;
 import net.minecraft.client.particle.ParticleProvider;
-import net.minecraft.client.particle.ParticleRenderType;
 import net.minecraft.client.particle.SpriteSet;
-import net.minecraft.client.particle.TextureSheetParticle;
+import net.minecraft.client.particle.SingleQuadParticle;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 
 /**
  * The MCHeli soft smoke — a faithful port of {@code MCH_EntityParticleSmoke}: a camera-facing billboard that plays the
@@ -17,8 +14,7 @@ import net.neoforged.api.distmarker.OnlyIn;
  * growing as it dissipates. The sheet is one atlas sprite; this particle sub-samples the current frame's 1/8 column by
  * overriding the U getters. Used for rotor down-wash and damage smoke in place of vanilla {@code CLOUD}/{@code LARGE_SMOKE}.
  */
-@OnlyIn(Dist.CLIENT)
-public class MchSmokeParticle extends TextureSheetParticle {
+public class MchSmokeParticle extends SingleQuadParticle {
 
     private TextureAtlasSprite sheet;
     private int frame; // 0..7 within the horizontal strip
@@ -27,8 +23,7 @@ public class MchSmokeParticle extends TextureSheetParticle {
 
     protected MchSmokeParticle(ClientLevel level, double x, double y, double z, double xd, double yd, double zd,
                                MchSmokeOptions o, SpriteSet sprites) {
-        super(level, x, y, z);
-        this.setSprite(sprites.get(0, 1));
+        super(level, x, y, z, sprites.get(0, 1));
         this.sheet = this.sprite;
         int argb = o.argb();
         this.baseAlpha = ((argb >>> 24) & 0xFF) / 255.0F;
@@ -48,12 +43,12 @@ public class MchSmokeParticle extends TextureSheetParticle {
     }
 
     @Override
-    public ParticleRenderType getRenderType() {
-        return ParticleRenderType.PARTICLE_SHEET_TRANSLUCENT;
+    protected Layer getLayer() {
+        return Layer.TRANSLUCENT;
     }
 
     @Override
-    public int getLightColor(float partialTick) {
+    protected int getLightCoords(float partialTick) {
         return 0xF000F0; // the reference brightens smoke (samples sky at posY+3000) so it stays visible against terrain
     }
 
@@ -94,8 +89,6 @@ public class MchSmokeParticle extends TextureSheetParticle {
     protected float getV1() {
         return this.sheet.getV1();
     }
-
-    @OnlyIn(Dist.CLIENT)
     public static class Provider implements ParticleProvider<MchSmokeOptions> {
         private final SpriteSet sprites;
 
@@ -105,7 +98,7 @@ public class MchSmokeParticle extends TextureSheetParticle {
 
         @Override
         public Particle createParticle(MchSmokeOptions options, ClientLevel level, double x, double y, double z,
-                                       double xd, double yd, double zd) {
+                                       double xd, double yd, double zd, net.minecraft.util.RandomSource random) {
             return new MchSmokeParticle(level, x, y, z, xd, yd, zd, options, this.sprites);
         }
     }

@@ -4,13 +4,17 @@ import mcheli.dependent.entity.AbstractMchVehicle;
 import net.minecraft.client.Camera;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.phys.Vec3;
+import org.joml.Quaternionf;
+import org.joml.Vector3f;
+import org.joml.Vector3fc;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
  * Parents the camera to an MCHeli vehicle — the 1.21.1 port of the reference camera rig ({@code MCH_Camera} +
@@ -22,7 +26,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  *       ({@code calcOnTurretPos}), else the locked-view cockpit eye; {@code null} means the reference renders from the
  *       player itself and the vanilla camera (at the faithfully-attached rider) is already correct.</li>
  *   <li><b>Rotation</b> — locked-view aircraft get the full vehicle yaw/pitch/roll (the reference locks the PLAYER to
- *       the hull; {@code Camera.setup} adds eye height on world-Y with no event to intercept, hence this Mixin).
+ *       the hull; vanilla {@code Camera.alignWithEntity} adds eye height on world-Y with no event to intercept, hence
+ *       this Mixin). 26.x vanilla {@code setRotation} has no roll (NeoForge patched one in), so roll is applied to the
+ *       camera quaternion + basis vectors here ({@link #mcheli$setRotation}).</li>
+ *   <li><b>Gunner zoom</b> — {@code Camera.calculateFov} is narrowed by {@code MchGunnerView.modifyFov} (NeoForge's
+ *       {@code ViewportEvent.ComputeFov}; 26.x moved the FOV from GameRenderer to Camera).
  *       Free-look tanks keep the player's own look but gain the reference's faded camera roll
  *       ({@code wrap(rotRoll)·cos(hullYaw − playerYaw)}, {@code MCH_ClientCommonTickHandler:408-415}); emplacements
  *       get no roll ({@code cameraRollFade()==false}).</li>
@@ -36,7 +44,17 @@ public abstract class CameraMixin {
     protected abstract void setPosition(Vec3 pos);
 
     @Shadow
-    protected abstract void setRotation(float yaw, float pitch, float roll);
+    protected abstract void setRotation(float yaw, float pitch);
+
+    @Shadow private Entity entity;
+    @Shadow private boolean detached;
+    @Shadow @Final private Quaternionf rotation;
+    @Shadow @Final private Vector3f forwards;
+    @Shadow @Final private Vector3f up;
+    @Shadow @Final private Vector3f left;
+    @Shadow @Final private static Vector3fc FORWARDS;
+    @Shadow @Final private static Vector3fc UP;
+    @Shadow @Final private static Vector3fc LEFT;
 
     @Shadow
     protected abstract float getMaxZoom(float startingDistance);
@@ -44,9 +62,26 @@ public abstract class CameraMixin {
     @Shadow
     protected abstract void move(float zoom, float dy, float dx);
 
-    @Inject(method = "setup", at = @At("TAIL"))
-    private void mcheli$vehicleCamera(BlockGetter level, Entity cam, boolean detached, boolean reverse,
-                                      float partialTick, CallbackInfo ci) {
+    /** Vanilla rotation + MCHeli roll: the same quaternion vanilla builds ({@code rotationYXZ(pi - yaw, -pitch, 0)}) with
+     *  the roll the NeoForge {@code setRotation(yaw, pitch, roll)} applied, then the basis vectors re-derived from it. */
+    private void mcheli$setRotation(float yaw, float pitch, float roll) {
+        this.setRotation(yaw, pitch); // sets xRot/yRot + marks the view matrices dirty
+        this.rotation.rotationYXZ((float) Math.PI - yaw * Mth.DEG_TO_RAD, -pitch * Mth.DEG_TO_RAD, -roll * Mth.DEG_TO_RAD);
+        FORWARDS.rotate(this.rotation, this.forwards);
+        UP.rotate(this.rotation, this.up);
+        LEFT.rotate(this.rotation, this.left);
+    }
+
+    @Inject(method = "calculateFov", at = @At("RETURN"), cancellable = true)
+    private void mcheli$gunnerZoom(float partialTick, CallbackInfoReturnable<Float> cir) {
+        cir.setReturnValue(mcheli.dependent.client.MchGunnerView.modifyFov(cir.getReturnValueF()));
+    }
+
+    @Inject(method = "alignWithEntity", at = @At("TAIL"))
+    private void mcheli$vehicleCamera(float partialTick, CallbackInfo ci) {
+        Entity cam = this.entity;
+        boolean detached = this.detached;
+        boolean reverse = net.minecraft.client.Minecraft.getInstance().options.getCameraType().isMirrored();
         if (cam == null || !(cam.getVehicle() instanceof AbstractMchVehicle v)) {
             return;
         }
@@ -71,12 +106,12 @@ public abstract class CameraMixin {
             if (locked) {
                 // Reference locks the PLAYER to the hull (setAngles:1265-1288) -> camera shows the full hull attitude.
                 float hullPitch = Mth.lerp(partialTick, v.xRotO, v.getXRot());
-                this.setRotation(hullYaw, hullPitch + rP, hullRoll + rR);
+                this.mcheli$setRotation(hullYaw, hullPitch + rP, hullRoll + rR);
             } else if (v.cameraRollFade()) {
                 // Free look on a tank: camera roll fades as the player looks away from the hull axis.
-                float yawDiff = Mth.wrapDegrees(hullYaw - self.getYRot());
+                float yawDiff = Mth.wrapDegrees(hullYaw - self.yRot());
                 float roll = Mth.wrapDegrees(hullRoll) * Mth.cos(yawDiff * Mth.DEG_TO_RAD);
-                this.setRotation(self.getYRot(), self.getXRot() + rP, roll + rR);
+                this.mcheli$setRotation(self.yRot(), self.xRot() + rP, roll + rR);
             }
             if (eye != null) {
                 this.setPosition(eye);
@@ -87,18 +122,20 @@ public abstract class CameraMixin {
             // reverse flip) and add the same locked/faded roll as first person. Locked riders have yawDiff == 0, so
             // the faded formula degenerates to the full hull roll for them.
             if (locked || v.cameraRollFade()) {
-                float yawDiff = Mth.wrapDegrees(hullYaw - (reverse ? self.getYRot() - 180.0F : self.getYRot()));
+                float yawDiff = Mth.wrapDegrees(hullYaw - (reverse ? self.yRot() - 180.0F : self.yRot()));
                 float roll = Mth.wrapDegrees(hullRoll) * Mth.cos(yawDiff * Mth.DEG_TO_RAD);
-                this.setRotation(self.getYRot(), self.getXRot(), roll);
+                this.mcheli$setRotation(self.yRot(), self.xRot(), roll);
             }
             if (eye != null) {
-                // Re-anchor the orbit on the config/cockpit eye and redo the vanilla pull-back — with the NeoForge
-                // detached-distance hook + entity scale, exactly as vanilla Camera.setup does.
+                // Re-anchor the orbit on the config/cockpit eye and redo the vanilla pull-back — the camera-distance
+                // attribute (default 4) x entity scale, as vanilla Camera.alignWithEntity does.
                 this.setPosition(eye);
-                float scale = cam instanceof net.minecraft.world.entity.LivingEntity le ? le.getScale() : 1.0F;
-                this.move(-this.getMaxZoom(
-                    net.neoforged.neoforge.client.ClientHooks.getDetachedCameraDistance(self, reverse, scale, 4.0F) * scale),
-                    0.0F, 0.0F);
+                float dist = 4.0F;
+                if (cam instanceof net.minecraft.world.entity.LivingEntity le) {
+                    dist = (float) le.getAttributeValue(net.minecraft.world.entity.ai.attributes.Attributes.CAMERA_DISTANCE)
+                        * le.getScale();
+                }
+                this.move(-this.getMaxZoom(dist), 0.0F, 0.0F);
             }
         }
     }

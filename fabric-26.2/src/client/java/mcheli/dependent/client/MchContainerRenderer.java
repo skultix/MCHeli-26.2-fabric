@@ -6,10 +6,10 @@ import mcheli.MCHeli;
 import mcheli.agnostic.model.MchModel;
 import mcheli.agnostic.spi.ModelHandle;
 import mcheli.dependent.entity.MchContainer;
-import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.rendertype.RenderType;
-import net.minecraft.client.renderer.entity.EntityRenderer;
+import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
+import net.minecraft.client.renderer.rendertype.RenderTypes;
+import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
@@ -18,7 +18,7 @@ import net.minecraft.util.Mth;
  * Renders a {@link MchContainer} as the bundled {@code models/container} model textured from
  * {@code mcheli:textures/container.png} — the port of {@code MCH_RenderContainer}. Opaque, normally lit, yaw-oriented.
  */
-public class MchContainerRenderer extends EntityRenderer<MchContainer> {
+public class MchContainerRenderer extends MchSimpleRenderer<MchContainer> {
 
     private static final Identifier TEXTURE =
         Identifier.fromNamespaceAndPath(MCHeli.MODID, "textures/container.png");
@@ -28,21 +28,19 @@ public class MchContainerRenderer extends EntityRenderer<MchContainer> {
         this.shadowRadius = 0.9F;
     }
 
-    @Override public Identifier getTextureLocation(MchContainer entity) { return TEXTURE; }
-
     @Override
-    public void render(MchContainer entity, float entityYaw, float partialTick, PoseStack pose,
-                       MultiBufferSource buffers, int packedLight) {
+    public void submit(State<MchContainer> state, PoseStack pose, SubmitNodeCollector collector, CameraRenderState camera) {
         ModelHandle h = mcheli.dependent.port.MchContentPacks.resources().loadModel("container");
         if (h instanceof MchModel model) {
+            MchContainer entity = state.entity;
             pose.pushPose();
-            float yaw = Mth.rotLerp(partialTick, entity.yRotO, entity.getYRot());
+            float yaw = Mth.rotLerp(state.partialTick, entity.yRotO, entity.getYRot());
             pose.mulPose(Axis.YP.rotationDegrees(-yaw));
-            MchModelRenderer.render(model, pose,
-                buffers.getBuffer(RenderType.entityCutoutNoCull(TEXTURE)),
-                packedLight, OverlayTexture.NO_OVERLAY, 255, 255, 255, 255);
+            int light = state.lightCoords;
+            submitGeometry(pose, collector, RenderTypes.entityCutout(TEXTURE), (ps, consumer) ->
+                MchModelRenderer.render(model, ps, consumer, light, OverlayTexture.NO_OVERLAY, 255, 255, 255, 255));
             pose.popPose();
         }
-        super.render(entity, entityYaw, partialTick, pose, buffers, packedLight);
+        super.submit(state, pose, collector, camera);
     }
 }

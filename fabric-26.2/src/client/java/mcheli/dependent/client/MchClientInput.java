@@ -7,13 +7,6 @@ import mcheli.dependent.control.ServerboundWeaponSwitchPayload;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Options;
 import net.minecraft.world.entity.Entity;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.ClientTickEvent;
-import net.neoforged.neoforge.client.event.InputEvent;
-import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
-import net.neoforged.neoforge.network.PacketDistributor;
 
 /**
  * Client-only GAME-bus subscriber that captures the local rider's control keys each client tick and ships them to
@@ -28,7 +21,6 @@ import net.neoforged.neoforge.network.PacketDistributor;
  *
  * <p>The bus is auto-detected per event ({@code ClientTickEvent.Post} is a game-bus event).
  */
-@EventBusSubscriber(modid = MCHeli.MODID, value = Dist.CLIENT)
 public final class MchClientInput {
     private MchClientInput() {}
 
@@ -39,9 +31,7 @@ public final class MchClientInput {
     private static int keepalive;
     // Weapon-switch is edge-triggered: remember the switch key's last state so we send ONE cycle per press.
     private static boolean switchKeyWasDown;
-
-    @SubscribeEvent
-    public static void onClientTick(ClientTickEvent.Post event) {
+    public static void onClientTick(net.minecraft.client.Minecraft client) {
         Minecraft mc = Minecraft.getInstance();
         Entity vehicle = mc.player != null ? mc.player.getVehicle() : null;
 
@@ -49,7 +39,7 @@ public final class MchClientInput {
         // controllable. ANY other state (GUI open, dismounted, no player) means "release the controls".
         // ANY seat sends input (a gunner fires + switches weapons); the SERVER drops a non-pilot's drive bits, and
         // the pilot-only keys are additionally gated below so we never even send them from a gunner seat.
-        boolean controlling = mc.player != null && mc.screen == null && vehicle instanceof MchControllable;
+        boolean controlling = mc.player != null && mc.gui.screen() == null && vehicle instanceof MchControllable;
         // The reference blocks weapon use + weapon switching while the pilot is in the resupply GUI and for a 20-tick
         // tail afterwards (isPilotReloading). Driving is NOT blocked. The server enforces this too.
         boolean armed = controlling && !(vehicle instanceof mcheli.dependent.entity.AbstractMchVehicle v
@@ -59,7 +49,7 @@ public final class MchClientInput {
         // it for "next weapon". Only fires on the rising edge and only while actively controlling.
         boolean switchDown = armed && mc.options.keySwapOffhand.isDown();
         if (switchDown && !switchKeyWasDown && vehicle != null) {
-            PacketDistributor.sendToServer(new ServerboundWeaponSwitchPayload(vehicle.getId(), 1));
+            net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(new ServerboundWeaponSwitchPayload(vehicle.getId(), 1));
         }
         switchKeyWasDown = switchDown;
 
@@ -73,7 +63,7 @@ public final class MchClientInput {
             // that same check — harmless; there the entity's clearMomentary() is the authoritative reset.)
             if (lastVehicleId != -1) {
                 if (mc.player != null) {
-                    PacketDistributor.sendToServer(new ServerboundControlPayload(lastVehicleId, 0, -1));
+                    net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(new ServerboundControlPayload(lastVehicleId, 0, -1));
                 }
                 lastVehicleId = -1;
                 lastBits = -1;
@@ -98,7 +88,7 @@ public final class MchClientInput {
         // Raw left-mouse-button state — reliable while riding (vanilla attack handling can consume keyAttack). Gated
         // by 'controlling' above (no GUI, mouse grabbed), so it only reads while actually piloting.
         boolean fireHeld = armed && org.lwjgl.glfw.GLFW.glfwGetMouseButton(
-                mc.getWindow().getWindow(), org.lwjgl.glfw.GLFW.GLFW_MOUSE_BUTTON_LEFT) == org.lwjgl.glfw.GLFW.GLFW_PRESS;
+                mc.getWindow().handle(), org.lwjgl.glfw.GLFW.GLFW_MOUSE_BUTTON_LEFT) == org.lwjgl.glfw.GLFW.GLFW_PRESS;
         if (fireHeld) {
             bits |= ServerboundControlPayload.FIRE;
         }
@@ -123,7 +113,7 @@ public final class MchClientInput {
             int warnId = MchLockTracker.warningTargetId();
             if (warnId >= 0) {
                 if (notifyLockTick++ % 15 == 0) {
-                    PacketDistributor.sendToServer(new mcheli.dependent.control.ServerboundNotifyLockPayload(warnId));
+                    net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(new mcheli.dependent.control.ServerboundNotifyLockPayload(warnId));
                 }
             } else {
                 notifyLockTick = 0;
@@ -134,7 +124,7 @@ public final class MchClientInput {
         keepalive++;
         // Send on change (bits, target vehicle, or lock target), plus a ~5-second keepalive to recover a missed packet.
         if (bits != lastBits || vid != lastVehicleId || lockTargetId != lastLockTargetId || keepalive % 100 == 0) {
-            PacketDistributor.sendToServer(new ServerboundControlPayload(vid, bits, lockTargetId));
+            net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(new ServerboundControlPayload(vid, bits, lockTargetId));
             lastBits = bits;
             lastVehicleId = vid;
             lastLockTargetId = lockTargetId;
@@ -147,22 +137,16 @@ public final class MchClientInput {
     // "attack", so without this a pilot holding fire near terrain also mines blocks (instantly in creative) and
     // swings at nearby mobs. We cancel BOTH vanilla left-click paths only while riding; normal play is untouched.
 
-    /** The initial attack keybind press (arm swing + start-mining + entity melee). */
-    @SubscribeEvent
-    public static void onAttackInput(InputEvent.InteractionKeyMappingTriggered event) {
-        if (event.isAttack() && ridingMchVehicle()) {
-            event.setSwingHand(false);
-            event.setCanceled(true);
-        }
-    }
-
-    /** Held / creative-instant block breaking is driven through this event (from MultiPlayerGameMode.startDestroyBlock),
-     *  which the attack-key cancel above does not cover. Dist.CLIENT subscriber, so this only cancels the local player. */
-    @SubscribeEvent
-    public static void onLeftClickBlock(PlayerInteractEvent.LeftClickBlock event) {
-        if (ridingMchVehicle()) {
-            event.setCanceled(true);
-        }
+    public static void register() {
+        net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents.END_CLIENT_TICK.register(MchClientInput::onClientTick);
+        // The attack keybind (arm swing + start-mining + entity melee): returning true cancels all three, swing included.
+        net.fabricmc.fabric.api.event.client.player.ClientPreAttackCallback.EVENT.register(
+            (mc, player, clickCount) -> ridingMchVehicle());
+        // Held / creative-instant block breaking goes through MultiPlayerGameMode.startDestroyBlock, which the pre-attack
+        // cancel does not cover. Fires on both sides; only the local rider is affected (its client cancels it).
+        net.fabricmc.fabric.api.event.player.AttackBlockCallback.EVENT.register((player, level, hand, pos, dir) ->
+            level.isClientSide() && ridingMchVehicle()
+                ? net.minecraft.world.InteractionResult.FAIL : net.minecraft.world.InteractionResult.PASS);
     }
 
     private static boolean ridingMchVehicle() {

@@ -7,11 +7,6 @@ import mcheli.dependent.entity.AbstractMchVehicle;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.util.Mth;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.ClientTickEvent;
-import net.neoforged.neoforge.client.event.ViewportEvent;
 
 /**
  * Client-only gunner-view state: the scope ZOOM and the seat view-pitch clamp. The port of the reference's
@@ -27,7 +22,6 @@ import net.neoforged.neoforge.client.event.ViewportEvent;
  *       elevation envelope.</li>
  * </ul>
  */
-@EventBusSubscriber(modid = MCHeli.MODID, value = Dist.CLIENT)
 public final class MchGunnerView {
     private MchGunnerView() {}
 
@@ -66,17 +60,19 @@ public final class MchGunnerView {
         return player != null && player.getVehicle() instanceof AbstractMchVehicle v
             && v.isSeatGunnerMode(v.seatIndexOf(player)) ? v : null;
     }
-
-    @SubscribeEvent
-    public static void onComputeFov(ViewportEvent.ComputeFov event) {
-        LocalPlayer player = Minecraft.getInstance().player;
-        if (zoom > 1.0F && gunnerVehicle(player) != null) {
-            event.setFOV(event.getFOV() / zoom); // optical zoom = narrower FOV
-        }
+    public static void register() {
+        net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents.END_CLIENT_TICK.register(MchGunnerView::onClientTick);
     }
 
-    @SubscribeEvent
-    public static void onClientTick(ClientTickEvent.Post event) {
+    /** Applied to the camera FOV by {@code CameraMixin} (Camera.calculateFov RETURN) — NeoForge's ViewportEvent.ComputeFov. */
+    public static float modifyFov(float fov) {
+        LocalPlayer player = Minecraft.getInstance().player;
+        if (zoom > 1.0F && gunnerVehicle(player) != null) {
+            return fov / zoom; // optical zoom = narrower FOV
+        }
+        return fov;
+    }
+    public static void onClientTick(net.minecraft.client.Minecraft client) {
         LocalPlayer player = Minecraft.getInstance().player;
         AbstractMchVehicle v = gunnerVehicle(player);
         boolean gunner = v != null;

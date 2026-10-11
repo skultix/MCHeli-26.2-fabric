@@ -17,6 +17,7 @@
       "mcheli.MCHeliClient"
     ]
   },
+  "accessWidener": "mcheli.classtweaker",
   "mixins": [
     "mcheli.mixins.json"
   ],

@@ -1,30 +1,19 @@
 package mcheli.dependent.client;
 
-import mcheli.MCHeli;
 import mcheli.dependent.entity.AbstractMchVehicle;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.RenderLivingEvent;
+import net.minecraft.world.entity.Entity;
 
 /**
- * Client-only GAME-bus subscriber that hides the seated rider of a vehicle whose config says {@code HideEntity=true}
- * (the Mk.15 Phalanx dome, the closed m1a2 turret) — the 1.21.1 port of the reference {@code MCH_ClientEventHook}
- * {@code renderPlayerPre}/{@code renderLivingEventPre} cancel. Without it the port DRAWS the pilot where the reference
- * makes it invisible, so the player clips through the closed dome / perches on the aiming turret. Cancelling the
- * living-render pass removes the rider only in views that would draw it (third-person / other clients); the local
- * first-person player is not drawn as a living entity, so this is a no-op there.
- *
- * <p>The bus is auto-detected per event ({@code RenderLivingEvent.Pre} is a game-bus event).
+ * Hides the rider of a vehicle whose config hides it (an enclosed cockpit / tank hull — {@link
+ * AbstractMchVehicle#hidesRider()}). NeoForge cancelled {@code RenderLivingEvent.Pre}; Fabric has no cancellable
+ * living-render event, so {@code EntityRenderDispatcherMixin} asks {@link #shouldHide} from
+ * {@code EntityRenderDispatcher.shouldRender}.
  */
-@EventBusSubscriber(modid = MCHeli.MODID, value = Dist.CLIENT)
 public final class MchRiderRenderHider {
     private MchRiderRenderHider() {}
 
-    @SubscribeEvent
-    public static void onRenderLivingPre(RenderLivingEvent.Pre<?, ?> event) {
-        if (event.getEntity().getVehicle() instanceof AbstractMchVehicle vehicle && vehicle.hidesRider()) {
-            event.setCanceled(true);
-        }
+    public static boolean shouldHide(Entity entity) {
+        return entity instanceof net.minecraft.world.entity.LivingEntity
+            && entity.getVehicle() instanceof AbstractMchVehicle vehicle && vehicle.hidesRider();
     }
 }

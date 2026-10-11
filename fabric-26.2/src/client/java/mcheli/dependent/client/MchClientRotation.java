@@ -7,12 +7,6 @@ import mcheli.dependent.entity.AbstractMchVehicle;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.RenderFrameEvent;
-import net.neoforged.neoforge.client.event.ClientTickEvent;
-import net.neoforged.neoforge.network.PacketDistributor;
 
 /**
  * Client-only handler giving the local rider MCHeli's mouse-hijack aircraft control — the 1.21.1 analogue of
@@ -27,7 +21,6 @@ import net.neoforged.neoforge.network.PacketDistributor;
  * player's view back onto the aircraft heading BEFORE the frame renders, so the camera only ever shows the aircraft.
  * The resulting rotation is shipped to the server once per TICK (20 Hz), not per frame, to avoid flooding.
  */
-@EventBusSubscriber(modid = MCHeli.MODID, value = Dist.CLIENT)
 public final class MchClientRotation {
     private MchClientRotation() {}
 
@@ -39,20 +32,24 @@ public final class MchClientRotation {
     private static float lockedPitch;
     private static int lastVehicleId = -1;
     private static AbstractMchVehicle owned; // the aircraft we've marked as locally rotation-owned
+    public static void register() {
+        net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents.END_CLIENT_TICK.register(MchClientRotation::onClientTick);
+    }
 
-    @SubscribeEvent
-    public static void onRenderFrame(RenderFrameEvent.Pre event) {
+    /** Called every frame by {@code MinecraftMixin}, after mouse-turn handling and just before the frame renders
+     *  (NeoForge's RenderFrameEvent.Pre). */
+    public static void onRenderFrame(net.minecraft.client.DeltaTracker deltaTracker) {
         Minecraft mc = Minecraft.getInstance();
         // ONE handler, fixed order: rotation solver FIRST, then the rider weld — as two listeners on the same event
         // their order would be JVM-dependent and the weld could see last frame's hull rotation.
-        if (mc.player != null && mc.screen == null) {
-            doRotation(mc, event.getPartialTick().getGameTimeDeltaTicks());
+        if (mc.player != null && mc.gui.screen() == null) {
+            doRotation(mc, deltaTracker.getGameTimeDeltaTicks());
         } else {
             reset();
         }
         // The weld LERPS, so it needs the 0..1 residual through the current tick — getGameTimeDeltaTicks() is the
         // per-frame tick DELTA (~0.33 at 60fps), which as a lerp fraction made riders oscillate against the hull.
-        weldRiders(mc, event.getPartialTick().getGameTimeDeltaPartialTick(true));
+        weldRiders(mc, deltaTracker.getGameTimeDeltaPartialTick(true));
     }
 
     private static void doRotation(Minecraft mc, float pt) {
@@ -214,12 +211,10 @@ public final class MchClientRotation {
     // client-only CameraMixin, NOT here — Camera.setup adds the eye on world-Y with no public hook, so ComputeCameraAngles
     // (angles only) could not follow a bank/loop. lockCamera above still drives the PLAYER's yaw/pitch for the mouse
     // delta baseline; the Mixin overrides what the camera actually shows.
-
-    @SubscribeEvent
-    public static void onClientTick(ClientTickEvent.Post event) {
+    public static void onClientTick(net.minecraft.client.Minecraft client) {
         // Ship the client-authoritative rotation to the server at tick rate (physics reads it; syncs to others).
         if (owned != null && !owned.isRemoved()) {
-            PacketDistributor.sendToServer(
+            net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(
                 new ServerboundRotationPayload(owned.getId(), owned.getYRot(), owned.getXRot(), owned.getRollAngle()));
         }
     }

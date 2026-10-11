@@ -20,6 +20,9 @@ tasks.withType(JavaCompile).configureEach {
 sourceSets.main.resources.srcDir rootProject.file('mcheli-assets')
 
 loom {
+    // Access widening ("class tweaker" in 26.x Loom; fabric.mod.json still uses the "accessWidener" key).
+    accessWidenerPath = file("src/main/resources/mcheli.classtweaker")
+
     // Client-only code lives in src/client; Loom fails the build if src/main references client classes.
     splitEnvironmentSourceSets()
 
