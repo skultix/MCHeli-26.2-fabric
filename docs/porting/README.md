@@ -1,8 +1,41 @@
 # Porting MCHeli to Fabric 26.2
 
 Source: `neoforge-1.21.1/src/main/java`, about 17k lines (`mcheli.MCHeli` plus `mcheli.dependent.*`).
-Target: `fabric-26.2/`, currently an empty skeleton that builds and launches.
+Target: `fabric-26.2/`. The whole platform layer is ported (status below).
 `mcheli-agnostic` (about 17.6k lines of game logic) and `mcheli-assets/` are reused as they are.
+
+## Status (2026-10-11): ported
+
+**Everything compiles and builds.** The production jar (`./gradlew :fabric-26.2:prodServer`) runs on a real Fabric server install.
+
+**Server self-tests** (`-PmcheliSelfTests=<name>`, run one at a time on a fresh world): 15 of 19 pass. These pass: crush, heli, homing, vtol, bomb, torpedo, bullet, particle, hud, heat, hp, crewfuel, contentpack, cas and dispenser. The other four:
+- **`tank`, `plane`, `weapon`:** fail identically on the unmodified NeoForge module (`weapon` with an NPE). They are out of date against the current agnostic code and were not broken by the port.
+- **`flare`:** fails only on Fabric, and it is a bug in the test that 26.x exposes. Its guided missile has no shooter, so guidance discards it on the first tick. On 1.21.1 the missile sat outside the entity-ticking spawn chunks, never ticked, and the test passed by accident.
+
+**`contentpack` needs packs written before boot.** Create `fabric-26.2/run/mcheli/testpack_rp/assets/mcheli/...` and `fabric-26.2/run/mcheli/testpack_flat/...`, each containing:
+- `helicopters/<vehicle>.txt`
+- `models/helicopters/<vehicle>.mqo`
+- `textures/helicopters/<vehicle>.png`
+- `sounds/<sound>.ogg`
+
+The names are `mch_testpack_heli`/`mch_testpack_snd` for `testpack_rp` and `mch_flatpack_heli`/`mch_flatpack_snd` for `testpack_flat`. Copy the files from any bundled helicopter. Add `Bad Name!.txt` and `fuel.txt` to the flat pack as the adversarial files.
+
+**Client gametest** (`./gradlew :fabric-26.2:runClientGameTest`): a real client with one vehicle per category. It checks that:
+- the AH-64 cockpit draws the camera mixin and the full config HUD;
+- third person works;
+- firing reaches the client (rounds and cartridges are counted);
+- the riding GUI opens through keybind → payload → menu.
+
+Screenshots go to `fabric-26.2/build/run/clientGameTest/screenshots`.
+
+**Content packs on the client:** both pack layouts mount into the client resource stack, and the generated 26.x `pack.mcmeta` is accepted.
+
+How the NeoForge-only pieces were replaced (details in the two documents below):
+- **Event subscribers** became explicit `register()` calls from `mcheli.MCHeli` and `mcheli.MCHeliClient`.
+- **Hooks with no Fabric event** became four mixins: `BuiltInPackSourceMixin`, `CameraMixin` (`alignWithEntity` with roll, plus FOV), `MinecraftMixin` (render-frame hook) and `EntityRenderDispatcherMixin` (rider hiding).
+- **Entity renderers** keep the entity and partial tick in the render state and queue one custom-geometry node that runs the existing draw code. The removed `entityTranslucentCull` is rebuilt on its pipeline (`MchRenderTypes`).
+- **Item icons** are the `mcheli:vehicle` special model renderer plus 26.x client item definitions; content-pack vehicles get theirs synthesized.
+- **Synced compound tags** use a custom `MchDataSerializers.COMPOUND_TAG`, because vanilla removed its serializer.
 
 ## Documents in this folder
 
@@ -37,7 +70,7 @@ Size of each NeoForge package, in lines:
 | `client/hud`, `client/screen`, `client/particle`, `particle/`, `menu/` | 1.3k | **High** (HUD) to medium. GUI extract model (`GuiGraphicsExtractor`) and particle render changes. |
 | `mixin/CameraMixin` | 0.1k | Medium. `Camera.setup` no longer exists; retarget it, and absorb the FOV hook (`Camera.calculateFov`). |
 
-## Suggested phase order (not started)
+## Phase order used
 
 Each phase ends with a check that can be repeated, so a regression shows up in the phase that caused it.
 
