@@ -74,8 +74,10 @@ public final class MchVehicleRecipes {
             if (info.recipeString == null || info.recipeString.isEmpty()) {
                 continue;
             }
-            Identifier resultId = Identifier.fromNamespaceAndPath("mcheli", info.name.toLowerCase(java.util.Locale.ROOT));
-            if (!BuiltInRegistries.ITEM.containsKey(resultId)) {
+            // tryBuild: a content-pack config with an illegal id (already skipped by MchRegistries) must not crash the
+            // datapack load here.
+            Identifier resultId = Identifier.tryBuild("mcheli", info.name.toLowerCase(java.util.Locale.ROOT));
+            if (resultId == null || !BuiltInRegistries.ITEM.containsKey(resultId)) {
                 continue; // no spawn item was minted for this config (e.g. a UAV) — nothing to craft
             }
             int n = 0;
