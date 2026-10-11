@@ -27,7 +27,7 @@ public class MchContainerItem extends Item {
         Level level = ctx.getLevel();
         if (!level.isClientSide()) {
             BlockPos pos = ctx.getClickedPos().relative(ctx.getClickedFace());
-            MchContainer container = MchRegistries.CONTAINER.get().create(level, EntitySpawnReason.MOB_SUMMONED);
+            MchContainer container = MchRegistries.CONTAINER.get().create(level, EntitySpawnReason.SPAWN_ITEM_USE);
             if (container == null) {
                 return InteractionResult.FAIL;
             }

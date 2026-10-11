@@ -54,7 +54,7 @@ public class VehicleSpawnItem extends Item {
         if (!level.isClientSide()) {
             BlockPos pos = context.getClickedPos().above();
             EntityType<? extends AbstractMchVehicle> type = MchRegistries.entityTypeFor(this.category);
-            AbstractMchVehicle v = type.create(level, EntitySpawnReason.MOB_SUMMONED);
+            AbstractMchVehicle v = type.create(level, EntitySpawnReason.SPAWN_ITEM_USE);
             if (v != null) {
                 // Assign the config BEFORE addFreshEntity so the spawn packet carries the name (client resolves the
                 // right model/info + hitboxes) and the first server tick builds weapons/hitboxes against it.

@@ -25,7 +25,7 @@ public interface MchSelfTest {
     default void onServerTick(MinecraftServer server) {}
 
     /** Chunk radius of the simulated area kept around world spawn while self-tests run. */
-    int SPAWN_TICKET_RADIUS = 16;
+    int SPAWN_TICKET_RADIUS = 8;
 
     static void register(MchSelfTest test) {
         Harness.init();
@@ -48,7 +48,11 @@ public interface MchSelfTest {
             ServerLifecycleEvents.SERVER_STARTED.register(server -> {
                 ServerLevel level = server.overworld();
                 ChunkPos center = ChunkPos.containing(level.getRespawnData().pos());
-                level.getChunkSource().addTicketWithRadius(ticket, center, SPAWN_TICKET_RADIUS);
+                // Load the area BEFORE the tests' own SERVER_STARTED hooks spawn into it (1.21.1 had spawn chunks loaded by
+                // then); managedBlock keeps running server tasks while waiting, so chunk loading can complete.
+                java.util.concurrent.CompletableFuture<?> loaded =
+                    level.getChunkSource().addTicketAndLoadWithRadius(ticket, center, SPAWN_TICKET_RADIUS);
+                server.managedBlock(loaded::isDone);
             });
         }
     }
