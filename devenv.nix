@@ -50,6 +50,8 @@ in
     test-agnostic.exec = ''./gradlew :mcheli-agnostic:test "$@"'';
     run-neoforge-client.exec = ''./gradlew :neoforge-1.21.1:runClient "$@"'';
     run-neoforge-server.exec = ''./gradlew :neoforge-1.21.1:runServer "$@"'';
+    run-fabric-client.exec = ''./gradlew :fabric-26.2:runClient "$@"'';
+    run-fabric-server.exec = ''./gradlew :fabric-26.2:runServer --args=nogui "$@"'';
   };
 
   enterShell = ''
