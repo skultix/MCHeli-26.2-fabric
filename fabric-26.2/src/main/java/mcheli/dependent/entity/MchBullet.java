@@ -95,6 +95,7 @@ public class MchBullet extends Entity {
     private int age;                    // reference countOnUpdate (timeFuse clock + proximity age gate)
     private Entity shooter;             // server-side only; excluded from collision + blast
     private MCH_WeaponInfo weaponInfo;  // server-side only; source of all effect params
+    private MCH_WeaponInfo damageWeapon; // server-side only; whose MchDamageConfig tuning applies (an airstrike's caller)
     private int piercing;               // live counter (blocks pierced remaining)
     private int delayFuseCounter;       // live countdown; 0 == unarmed (bounces off blocks)
     private int sprinkleTime;           // ticks until a cluster round splits (0 == not a cluster carrier)
@@ -185,6 +186,7 @@ public class MchBullet extends Entity {
         b.maxLife = maxLife;
         b.shooter = shooter;
         b.weaponInfo = wi;
+        b.damageWeapon = wi;
         b.isBomblet = isBomblet;
         if (wi != null) {
             b.piercing = wi.piercing;
@@ -575,7 +577,7 @@ public class MchBullet extends Entity {
         if (this.piercing > 0) {
             this.piercing--;
             if (expPower > 0 && !this.level().isClientSide()) {
-                MchExplosion.explode((ServerLevel) this.level(), pos, 1, 1, false, false, 0, null, this.shooter);
+                MchExplosion.explodeWeapon((ServerLevel) this.level(), pos, 1, 1, false, false, 0, null, this.shooter, this.damageWeapon);
             }
             // keep flying
         } else {
@@ -589,6 +591,7 @@ public class MchBullet extends Entity {
         float factor = this.weaponInfo != null ? this.weaponInfo.getDamageFactor(new NeoEntityRef(real)) : 1.0F;
         DamageSource src = this.damageSources().thrown(this, this.shooter);
         real.invulnerableTime = 0; // reference zeroes the hurt-cooldown so rapid fire + the follow-up blast all land
+        factor *= mcheli.dependent.MchDamageConfig.settings().directMultiplier(this.damageWeapon, new NeoEntityRef(real).role());
         real.hurt(src, this.damage * factor);
     }
 
@@ -613,14 +616,14 @@ public class MchBullet extends Entity {
             if (expPowerInWater == 0) {
                 if (wi.isFAE && expPower > 0) {
                     // FAE: no block destruction, strong entity ignition, no per-victim damage factor.
-                    MchExplosion.explode(sl, pos, expPower, wi.explosionBlock, wi.flaming, false, 15, null, this.shooter);
+                    MchExplosion.explodeWeapon(sl, pos, expPower, wi.explosionBlock, wi.flaming, false, 15, null, this.shooter, this.damageWeapon);
                 } else if (expPower > 0) {
-                    MchExplosion.explode(sl, pos, expPower, wi.explosionBlock, wi.flaming, true, 0, wi, this.shooter);
+                    MchExplosion.explodeWeapon(sl, pos, expPower, wi.explosionBlock, wi.flaming, true, 0, wi, this.shooter, this.damageWeapon);
                 }
             } else if (this.isInWater()) {
-                MchExplosion.explode(sl, pos, expPowerInWater, expPowerInWater, wi.flaming, true, 0, wi, this.shooter);
+                MchExplosion.explodeWeapon(sl, pos, expPowerInWater, expPowerInWater, wi.flaming, true, 0, wi, this.shooter, this.damageWeapon);
             } else {
-                MchExplosion.explode(sl, pos, expPower, wi.explosionBlock, wi.flaming, true, 0, wi, this.shooter);
+                MchExplosion.explodeWeapon(sl, pos, expPower, wi.explosionBlock, wi.flaming, true, 0, wi, this.shooter, this.damageWeapon);
             }
         }
         this.discard();
@@ -677,18 +680,19 @@ public class MchBullet extends Entity {
     private void spawnAirstrike() {
         if (this.level() instanceof ServerLevel sl) {
             callAirstrike(sl, this.getX(), this.getY(), this.getZ(), this.shooter,
-                3 + this.random.nextInt(2), 30, 6 + this.random.nextInt(2));
+                3 + this.random.nextInt(2), 30, 6 + this.random.nextInt(2), this.damageWeapon);
         }
     }
 
     /**
      * Call in a bombing run at a ground TARGET: {@code num} bombs rain from high above the point, scattered, each
-     * exploding on impact with {@code explosion} power (reference: {@code MCH_EntityBomb} volley). Shared by the marker
-     * rocket (#21) and the CAS weapon (#31 — a called-in bombing run standing in for the reference A-10 gun run, whose
-     * flying {@code MCH_EntityA10} strafing entity is a deferred sub-port). Reuses the projectile/gravity path.
+     * exploding on impact with {@code explosion} power (reference: {@code MCH_EntityBomb} volley), with {@code source}'s
+     * damage tuning (may be null). Shared by the marker rocket (#21) and the CAS weapon (#31 — a called-in bombing
+     * run standing in for the reference A-10 gun run, whose flying {@code MCH_EntityA10} strafing entity is a deferred
+     * sub-port). Reuses the projectile/gravity path.
      */
     public static void callAirstrike(ServerLevel sl, double tx, double ty, double tz, Entity shooter,
-                                     int explosion, int power, int num) {
+                                     int explosion, int power, int num, MCH_WeaponInfo source) {
         double ceiling = (sl.getMaxY() + 1) - 2;
         net.minecraft.util.RandomSource rnd = sl.getRandom();
         int p = Math.max(explosion, 1);
@@ -698,7 +702,7 @@ public class MchBullet extends Entity {
             double bz = tz + (rnd.nextFloat() - 0.5F) * 15.0F;
             MCH_WeaponInfo bombWi = airstrikeBombInfo(p);
             spawnWeapon(sl, new Vec3(bx, by, bz), new Vec3(0.0, -1.0, 0.0), 0.5F, 1.0F, -0.05F,
-                power > 0 ? power : 30, 1200, shooter, "bullet", 0xFF303030, bombWi);
+                power > 0 ? power : 30, 1200, shooter, "bullet", 0xFF303030, bombWi).damageWeapon = source;
         }
     }
 

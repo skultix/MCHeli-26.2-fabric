@@ -68,6 +68,22 @@ public final class MchExplosion {
      */
     public static void explode(ServerLevel level, Vec3 center, int power, int sizeBlock, boolean flaming,
                                boolean destroyBlock, int fireCount, MCH_WeaponInfo damageInfo, Entity shooter) {
+        explode(level, center, power, sizeBlock, flaming, destroyBlock, fireCount, damageInfo, shooter, false, null);
+    }
+
+    /**
+     * A weapon explosion: as above, with the entity damage also scaled by {@link mcheli.dependent.MchDamageConfig}
+     * for {@code weapon} (may be null: global and per-target multipliers only).
+     */
+    public static void explodeWeapon(ServerLevel level, Vec3 center, int power, int sizeBlock, boolean flaming,
+                                     boolean destroyBlock, int fireCount, MCH_WeaponInfo damageInfo, Entity shooter,
+                                     MCH_WeaponInfo weapon) {
+        explode(level, center, power, sizeBlock, flaming, destroyBlock, fireCount, damageInfo, shooter, true, weapon);
+    }
+
+    private static void explode(ServerLevel level, Vec3 center, int power, int sizeBlock, boolean flaming,
+                                boolean destroyBlock, int fireCount, MCH_WeaponInfo damageInfo, Entity shooter,
+                                boolean scaled, MCH_WeaponInfo weapon) {
         if (power <= 0 && sizeBlock <= 0) {
             return;
         }
@@ -87,8 +103,12 @@ public final class MchExplosion {
                 if (t <= 0.0F) {
                     continue;
                 }
-                float factor = damageInfo != null ? damageInfo.getDamageFactor(new NeoEntityRef(ent)) : 1.0F;
                 Entity victim = ent instanceof net.minecraft.world.entity.boss.enderdragon.EnderDragonPart part ? part.parentMob : ent;
+                NeoEntityRef ref = new NeoEntityRef(victim);
+                float factor = damageInfo != null ? damageInfo.getDamageFactor(ref) : 1.0F;
+                if (scaled) {
+                    factor *= mcheli.dependent.MchDamageConfig.settings().explosionMultiplier(weapon, ref.role());
+                }
                 // Zero the hurt-cooldown so the blast STACKS with a same-tick direct hit (the reference zeroes
                 // hurtResistantTime before every weapon hurt); otherwise invuln frames absorb the smaller of the two.
                 victim.invulnerableTime = 0;

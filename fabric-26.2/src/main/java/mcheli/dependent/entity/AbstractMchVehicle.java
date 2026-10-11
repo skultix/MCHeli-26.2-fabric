@@ -2638,7 +2638,7 @@ public abstract class AbstractMchVehicle extends Entity implements MchControllab
                     && this.level() instanceof ServerLevel sl) {
                 Vec3 tgt = bh.getLocation();
                 MchBullet.callAirstrike(sl, tgt.x, tgt.y, tgt.z, this, Math.max(wi.explosion, 3), wi.power,
-                    6 + this.random.nextInt(3));
+                    6 + this.random.nextInt(3), wi);
             }
         } else {
             MchBullet.spawnWeapon(this.level(), muzzle, dir, speed, accFactor, gravity, wi.power, 600, this, model, color, wi);

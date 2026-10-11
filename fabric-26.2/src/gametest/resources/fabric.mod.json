@@ -8,7 +8,8 @@
     "fabric-client-gametest": [
       "mcheli.gametest.MchClientGameTest",
       "mcheli.gametest.MchTaczGameTest",
-      "mcheli.gametest.MchHitboxGameTest"
+      "mcheli.gametest.MchHitboxGameTest",
+      "mcheli.gametest.MchDamageConfigGameTest"
     ]
   },
   "depends": {

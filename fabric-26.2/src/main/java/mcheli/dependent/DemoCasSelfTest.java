@@ -49,7 +49,7 @@ public final class DemoCasSelfTest implements MchSelfTest {
         this.tx = spawn.getX() + 0.5;
         this.ty = spawn.getY();
         this.tz = spawn.getZ() + 0.5;
-        MchBullet.callAirstrike(this.level, this.tx, this.ty, this.tz, null, 4, 30, 8);
+        MchBullet.callAirstrike(this.level, this.tx, this.ty, this.tz, null, 4, 30, 8, null);
 
         // Snapshot the just-spawned volley: how many, and how high above the target they start.
         for (MchBullet b : liveBombs()) {

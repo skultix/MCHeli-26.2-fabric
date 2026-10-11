@@ -12,7 +12,7 @@ import org.slf4j.Logger;
 /**
  * Soft integration with TaCZ (Refabricated), putting its guns on MCHeli's damage scale against vehicles: explosive
  * ammo (RPG-7, M320, HE ammo mod) does its designed blast damage, and plain bullets do half damage to unarmoured
- * vehicles and none to armoured ones ({@link #ARMORED_MIN_DAMAGE}). No compile dependency — TaCZ is detected and read by reflection, so MCHeli runs
+ * vehicles and none to armoured ones ({@code tacz} block of {@link mcheli.dependent.MchDamageConfig}). No compile dependency — TaCZ is detected and read by reflection, so MCHeli runs
  * unchanged without it.
  *
  * <p>Why: TaCZ gun packs give explosive ammo a designed blast damage ({@code bullet.explosion.damage}, e.g. RPG-7 =
@@ -37,13 +37,9 @@ public final class TaczCompat {
     private static final boolean LOADED = FabricLoader.getInstance().isModLoaded("tacz");
     private static final String BULLET_CLASS = "com.tacz.guns.entity.EntityKineticBullet";
 
-    /** Plain (non-explosive) TaCZ bullets deal this fraction of their damage to unarmoured vehicles: a vehicle's HP is
-     *  sized for MCHeli's own weapons, so full rifle damage (an AWP does 42) downs an AH-64 in five shots. */
-    public static final float SMALL_ARMS_FACTOR = 0.5F;
-    /** A vehicle whose config {@code ArmorMinDamage} is at least this is ARMOURED (the real tanks: m1a2, t-90, merkava,
-     *  kv-2, ...; 9..12): plain bullets do nothing to it — only explosive ammo and explosions do. Unarmoured "tanks"
-     *  (growler, bnr32, mxtmv) and everything else stay vulnerable to gunfire. */
-    public static final float ARMORED_MIN_DAMAGE = 5.0F;
+    // Plain-bullet rules (tacz.smallArmsFactor, tacz.smallArmsVsArmoredFactor, tacz.armoredMinDamage in
+    // config/mcheli-damage.json): a vehicle's HP is sized for MCHeli's own weapons, so full rifle damage (an AWP does
+    // 42) downs an AH-64 in five shots; armoured vehicles (config ArmorMinDamage >= 5: m1a2, t-90, kv-2, ...) shrug it off.
 
     private static Class<?> bulletClass;
     private static Field explosionField;
@@ -78,7 +74,8 @@ public final class TaczCompat {
             if (src.is(DamageTypeTags.IS_EXPLOSION)) {
                 return amount;
             }
-            return armorMinDamage >= ARMORED_MIN_DAMAGE ? 0.0F : amount * SMALL_ARMS_FACTOR;
+            var t = mcheli.dependent.MchDamageConfig.settings().tacz;
+            return amount * (armorMinDamage >= t.armoredMinDamage ? t.smallArmsVsArmoredFactor : t.smallArmsFactor);
         }
         float designed = readFloat(explosionDamageField, direct);
         if (src.is(DamageTypeTags.IS_EXPLOSION)) {

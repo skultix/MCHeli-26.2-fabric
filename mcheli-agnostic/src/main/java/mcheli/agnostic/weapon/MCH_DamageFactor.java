@@ -28,6 +28,17 @@ public class MCH_DamageFactor {
       this.map.put(c, value);
    }
 
+   /** The configured factors (unlisted roles are 1.0). */
+   public java.util.Map<Role, Float> entries() {
+      return java.util.Collections.unmodifiableMap(this.map);
+   }
+
+   public MCH_DamageFactor copy() {
+      MCH_DamageFactor c = new MCH_DamageFactor();
+      c.map.putAll(this.map);
+      return c;
+   }
+
    public float getDamageFactor(Role c) {
       return this.map.containsKey(c) ? this.map.get(c) : 1.0F;
    }
