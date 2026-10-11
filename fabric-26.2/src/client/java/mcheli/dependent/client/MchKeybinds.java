@@ -31,6 +31,11 @@ import net.minecraft.client.Minecraft;
 public final class MchKeybinds {
     private MchKeybinds() {}
 
+    /** The MCHeli controls category (26.x categories are registered records, translated from
+     *  {@code key.category.mcheli.controls}). */
+    private static final KeyMapping.Category CATEGORY =
+        KeyMapping.Category.register(mcheli.dependent.registry.MchRegistries.id("controls"));
+
     public static final KeyMapping GUI = key("gui", org.lwjgl.glfw.GLFW.GLFW_KEY_G);
     public static final KeyMapping SEAT_PREV = key("seat_prev", org.lwjgl.glfw.GLFW.GLFW_KEY_H);
     public static final KeyMapping FREE_LOOK = key("free_look", org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT_ALT);
@@ -43,11 +48,6 @@ public final class MchKeybinds {
 
     /** Client debounce: ticks left before another gunner-mode toggle may be sent (blocks a double-tap double-send). */
     private static int gunnerToggleCooldown;
-
-    /** The MCHeli controls category (26.x categories are registered records, translated from
-     *  {@code key.category.mcheli.controls}). */
-    private static final KeyMapping.Category CATEGORY =
-        KeyMapping.Category.register(mcheli.dependent.registry.MchRegistries.id("controls"));
 
     // No NeoForge KeyConflictContext.IN_GAME on Fabric: onClientTick already ignores presses while a screen is open.
     private static KeyMapping key(String name, int code) {

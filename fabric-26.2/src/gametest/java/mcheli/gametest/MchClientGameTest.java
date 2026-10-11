@@ -110,6 +110,13 @@ public class MchClientGameTest implements FabricClientGameTest {
             ctx.setScreen(() -> null);
             ctx.waitTicks(5);
 
+            // The controls screen lists every key mapping by category (a null MCHeli category crashed it once).
+            ctx.setScreen(() -> new net.minecraft.client.gui.screens.options.controls.KeyBindsScreen(null,
+                net.minecraft.client.Minecraft.getInstance().options));
+            ctx.waitTicks(5);
+            ctx.takeScreenshot("mcheli-06-keybinds");
+            ctx.setScreen(() -> null);
+
             sp.getServer().runOnServer(server -> server.getPlayerList().getPlayers().get(0).stopRiding());
             ctx.waitTicks(10);
         }
