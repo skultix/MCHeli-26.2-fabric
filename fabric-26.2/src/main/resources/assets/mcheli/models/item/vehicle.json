@@ -50,5 +50,8 @@
         0.5
       ]
     }
+  },
+  "textures": {
+    "particle": "mcheli:item/ah-64"
   }
 }

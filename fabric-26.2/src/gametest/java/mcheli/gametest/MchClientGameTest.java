@@ -25,6 +25,7 @@ public class MchClientGameTest implements FabricClientGameTest {
             sp.getConnection().waitForChunksRender();
             sp.getServer().runCommand("time set noon");
             sp.getServer().runCommand("weather clear");
+            sp.getServer().runCommand("gamemode creative @a"); // creative: free ammo + fuel, like the reference
 
             sp.getServer().runOnServer(server -> {
                 ServerPlayer p = server.getPlayerList().getPlayers().get(0);
@@ -67,6 +68,47 @@ public class MchClientGameTest implements FabricClientGameTest {
             ctx.waitTicks(20);
             ctx.takeScreenshot("mcheli-03-third-person");
             ctx.runOnClient(mc -> mc.options.setCameraType(CameraType.FIRST_PERSON));
+
+            // Fire the selected weapon (M230): server weapon path -> synced rounds, muzzle flash particles, cartridges.
+            // (The client reads the raw GLFW mouse button, which TestInput cannot press, so drive the trigger server-side.)
+            for (int i = 0; i < 12; i++) {
+                sp.getServer().runOnServer(server -> {
+                    if (server.getPlayerList().getPlayers().get(0).getVehicle() instanceof AbstractMchVehicle v) {
+                        v.getControlState().fire = true;
+                    }
+                });
+                ctx.waitTick();
+                if (i == 6) {
+                    ctx.takeScreenshot("mcheli-04-firing");
+                }
+            }
+            // The rounds + ejected cartridges must reach the CLIENT (spawn packets + renderers), not just exist server-side.
+            int clientRounds = ctx.computeOnClient(mc -> {
+                int n = 0;
+                for (var e : mc.level.entitiesForRendering()) {
+                    if (e instanceof mcheli.dependent.entity.MchBullet || e instanceof mcheli.dependent.entity.MchCartridge) {
+                        n++;
+                    }
+                }
+                return n;
+            });
+            org.slf4j.LoggerFactory.getLogger("mcheli-gametest").info("[GAMETEST] client sees {} rounds/cartridges after firing", clientRounds);
+            if (clientRounds == 0) {
+                throw new AssertionError("firing produced no client-side rounds or cartridges");
+            }
+            sp.getServer().runOnServer(server -> {
+                if (server.getPlayerList().getPlayers().get(0).getVehicle() instanceof AbstractMchVehicle v) {
+                    v.getControlState().fire = false;
+                }
+            });
+
+            // The riding GUI through the real keybind -> ServerboundVehicleGuiPayload -> ExtendedMenuType -> screen.
+            ctx.getInput().pressKey(mcheli.dependent.client.MchKeybinds.GUI);
+            ctx.waitForScreen(mcheli.dependent.client.screen.MchVehicleScreen.class);
+            ctx.waitTicks(5);
+            ctx.takeScreenshot("mcheli-05-vehicle-gui");
+            ctx.setScreen(() -> null);
+            ctx.waitTicks(5);
 
             sp.getServer().runOnServer(server -> server.getPlayerList().getPlayers().get(0).stopRiding());
             ctx.waitTicks(10);
