@@ -15,6 +15,11 @@ tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
 }
 
+// MCHeli's own content (vehicle/weapon/hud configs, .mqo/.obj models, textures, sounds, lang) lives in the shared
+// root-level mcheli-assets/ dir so every platform module bundles the same copy. Only vanilla-format JSON that
+// drifts between MC versions (item models, particle defs, recipes) stays in this module's src/main/resources.
+sourceSets.main.resources.srcDir rootProject.file('mcheli-assets')
+
 // NOTE: do NOT add a repositories { } block here — declaring any repo disables ModDevGradle's
 // centrally-managed NeoForge repositories for this project. Rely on settings.gradle instead.
 
