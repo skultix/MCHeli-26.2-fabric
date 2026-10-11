@@ -11,12 +11,15 @@
   "environment": "*",
   "entrypoints": {
     "main": [
-      "mcheli.fabric.MCHeliFabric"
+      "mcheli.MCHeli"
     ],
     "client": [
-      "mcheli.fabric.client.MCHeliFabricClient"
+      "mcheli.MCHeliClient"
     ]
   },
+  "mixins": [
+    "mcheli.mixins.json"
+  ],
   "depends": {
     "fabricloader": ">=0.19.5",
     "minecraft": "~26.2",

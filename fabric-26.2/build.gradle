@@ -12,6 +12,7 @@ java.toolchain.languageVersion = JavaLanguageVersion.of(25)
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
     options.release = 25
+    options.compilerArgs += ['-Xmaxerrs', '5000']
 }
 
 // Same shared MCHeli content the NeoForge module bundles (see the root build.gradle). Version-specific vanilla JSON
@@ -26,6 +27,19 @@ loom {
         mcheli {
             sourceSet sourceSets.main
             sourceSet sourceSets.client
+        }
+    }
+
+    runs {
+        server {
+            // Headless self-tests are OFF by default (see mcheli.MCHeli#registerSelfTests). Opt in with
+            //   ./gradlew :fabric-26.2:runServer -PmcheliSelfTests[=<name>[,<name>...]]
+            // which also halts the server once the verdict is logged, so the run terminates by itself.
+            if (project.hasProperty('mcheliSelfTests')) {
+                def sel = project.property('mcheliSelfTests').toString()
+                property 'mcheli.selftests', sel.isBlank() ? 'true' : sel
+                property 'mcheli.selftest.halt', 'true'
+            }
         }
     }
 }
