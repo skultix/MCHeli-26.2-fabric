@@ -72,6 +72,24 @@ dependencies {
     include project(':mcheli-agnostic')
 }
 
+// Production smoke test: installs a real Fabric server (installer + loader) and runs the BUILT jar with the Fabric API
+// jar — no dev environment, no Loom classpath. ./gradlew :fabric-26.2:prodServer (stop it with `stop`/Ctrl+C).
+tasks.register('prodServer', net.fabricmc.loom.task.prod.ServerProductionRunTask) {
+    installerVersion = '1.1.2'
+    loaderVersion = project.loader_version
+    minecraftVersion = project.minecraft_version
+    mods.from(tasks.named('jar'))
+    mods.from(configurations.detachedConfiguration(
+        dependencies.create("net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}")).setTransitive(false))
+    programArgs.add('--nogui')
+    runDir = layout.buildDirectory.dir('run/prodServer')
+    doFirst {
+        def dir = runDir.get().asFile
+        dir.mkdirs()
+        new File(dir, 'eula.txt').text = 'eula=true\n'
+    }
+}
+
 processResources {
     def version = project.version
     inputs.property 'version', version
