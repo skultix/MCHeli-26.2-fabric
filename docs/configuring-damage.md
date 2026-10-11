@@ -120,7 +120,7 @@ is optional.
 |---|---|---|
 | `power` | `Power` | Direct-hit damage. |
 | `explosion` | `Explosion` | Blast strength. Sets the damage radius (2 × this) and the blast damage. Range 0–50; 0 = no explosion. |
-| `explosionBlock` | `ExplosionBlock` | How strongly the explosion breaks blocks (still subject to the `mobGriefing` gamerule). Range 0–50. If the weapon config leaves it at "same as Explosion", it follows your `explosion` override. In the defaults file, `-1` means "same as Explosion". |
+| `explosionBlock` | `ExplosionBlock` | How strongly the explosion breaks blocks (still subject to the `mobGriefing` gamerule). Range 0–50. A weapon config that leaves it out uses its Explosion value; such a weapon also follows your `explosion` override. |
 | `explosionInWater` | `ExplosionInWater` | Blast strength when it goes off in water. 0 = use `explosion`. |
 | `damageFactor` | `DamageFactor` | Map of target -> factor, using the target names from `vsTarget`. Only the categories you list are replaced; the others keep the weapon config's values. |
 | `directDamage`, `explosionDamage` | — | Extra multipliers for this weapon only. |

@@ -195,6 +195,16 @@ public class MCH_WeaponInfo extends MCH_BaseInfo {
       return null;
    }
 
+   /**
+    * The reference {@code MCH_WeaponInfoManager.load} called {@link #checkData} on every parsed weapon; the shared
+    * {@code MCH_InfoManagerBase.load} (and reload) calls this hook at the same point instead. checkData is idempotent.
+    */
+   @Override
+   public boolean isValidData() throws Exception {
+      this.checkData();
+      return super.isValidData();
+   }
+
    public void checkData() {
       if (this.explosionBlock < 0) {
          this.explosionBlock = this.explosion;

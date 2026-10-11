@@ -34,6 +34,9 @@ public class MchDamageConfigGameTest implements FabricClientGameTest {
         try (TestSingleplayerContext sp = ctx.worldBuilder().create()) {
             sp.getConnection().waitForChunksRender();
             try {
+                int crater = crater(ctx, sp);
+                LOG.info("[GAMETEST-DAMAGECFG] hydra70 into the ground broke {} blocks", crater);
+                check(crater > 0, "a hydra70 (Explosion 3, no ExplosionBlock) should break blocks like Explosion 3");
                 float base = shot(ctx, sp, file, "{}", "m230");
                 float scaled = shot(ctx, sp, file,
                     "{\"vsTarget\": {\"living\": 0.5}, \"weapons\": {\"m230\": {\"power\": 4, \"explosionDamage\": 0}}}", "m230");
@@ -69,6 +72,37 @@ public class MchDamageConfigGameTest implements FabricClientGameTest {
         }
     }
 
+    /** Fires a default hydra70 straight down onto open ground; returns how many blocks around the impact it removed. */
+    private static int crater(ClientGameTestContext ctx, TestSingleplayerContext sp) {
+        int x = 8 * lane++;
+        int[] before = {0};
+        int[] y0 = {0};
+        sp.getServer().runOnServer(server -> {
+            var level = server.overworld();
+            y0[0] = level.getHeight(Heightmap.Types.MOTION_BLOCKING, x, 6);
+            before[0] = solid(level, x, y0[0]);
+            MCH_WeaponInfo wi = MCH_WeaponInfoManager.get("hydra70");
+            MchBullet.spawnWeapon(level, new Vec3(x + 0.5, y0[0] + 4.0, 6.5), new Vec3(0.0, -1.0, 0.0),
+                MCH_WeaponBallistics.initialSpeed(wi.acceleration), 1.0F, 0.0F, wi.power, 200, null, "bullet", 0xFFFFFFFF, wi);
+        });
+        ctx.waitTicks(20);
+        return sp.getServer().computeOnServer(server -> before[0] - solid(server.overworld(), x, y0[0]));
+    }
+
+    private static int solid(net.minecraft.server.level.ServerLevel level, int x, int y) {
+        int n = 0;
+        for (int dx = -3; dx <= 3; dx++) {
+            for (int dy = -4; dy <= 1; dy++) {
+                for (int dz = -3; dz <= 3; dz++) {
+                    if (!level.getBlockState(new net.minecraft.core.BlockPos(x + dx, y + dy, 6 + dz)).isAir()) {
+                        n++;
+                    }
+                }
+            }
+        }
+        return n;
+    }
+
     private static void check(boolean ok, String msg) {
         if (!ok) {
             throw new AssertionError(msg);
@@ -90,6 +124,7 @@ public class MchDamageConfigGameTest implements FabricClientGameTest {
             int y = level.getHeight(Heightmap.Types.MOTION_BLOCKING, x, 6);
             Pig pig = EntityTypes.PIG.create(level, EntitySpawnReason.COMMAND);
             pig.setNoAi(true);
+            pig.setNoGravity(true); // blasts crater the ground now; no falling into the hole
             pig.getAttribute(Attributes.MAX_HEALTH).setBaseValue(1000.0);
             pig.setHealth(1000.0F);
             pig.setPos(x + 0.5, y, 6.5);

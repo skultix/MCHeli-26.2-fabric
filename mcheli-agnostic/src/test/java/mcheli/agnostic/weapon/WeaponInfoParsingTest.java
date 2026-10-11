@@ -31,6 +31,21 @@ class WeaponInfoParsingTest {
         assertEquals(1.0f, w.damageFactor.getDamageFactor(Role.PLANE), 1e-6f); // unset -> default 1.0
     }
 
+    /** The loader's isValidData hook runs the reference checkData: ExplosionBlock follows Explosion, a 0 split time is raised to 1. */
+    @Test
+    void validationRunsCheckData() throws Exception {
+        MCH_WeaponInfo w = new MCH_WeaponInfo("agm");
+        w.loadItemData("explosion", "4");
+        w.loadItemData("bomblet", "3");
+        w.loadItemData("bombletstime", "0");
+        assertEquals(-1, w.explosionBlock);
+        w.isValidData();
+        assertEquals(4, w.explosionBlock);
+        assertEquals(1, w.bombletSTime);
+        w.isValidData(); // reload calls it again: idempotent
+        assertEquals(4, w.explosionBlock);
+    }
+
     @Test
     void dispenseItemResolvesViaSeam() {
         MCH_WeaponInfo w = new MCH_WeaponInfo("disp") {
