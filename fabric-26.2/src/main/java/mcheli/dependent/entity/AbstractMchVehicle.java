@@ -2845,12 +2845,18 @@ public abstract class AbstractMchVehicle extends Entity implements MchControllab
      * a {@code factor>1} weak-point multiplies AFTER the min-subtraction, so it can't be zeroed) must not be
      * "simplified". lava (×2..9) and onFire BYPASS the armor block; inFire/cactus do no damage.
      */
+    /** Last TaCZ rocket that hit this vehicle directly (its split hit + own blast must count once). */
+    private final mcheli.dependent.compat.TaczCompat.HitMemory taczHits = new mcheli.dependent.compat.TaczCompat.HitMemory();
+
     @Override
     public boolean hurtServer(net.minecraft.server.level.ServerLevel serverLevel, DamageSource src, float amount) {
         float factor = this.lastBBDamageFactor;   // capture the per-part factor, then reset (reference :809-810)
         this.lastBBDamageFactor = 1.0F;
 
         if (isInvulnerableToBase(src) || isRemoved()) return false;
+        // Other mods' weapons on MCHeli's damage scale (TaCZ explosive ammo: its designed blast damage) — see TaczCompat.
+        amount = mcheli.dependent.compat.TaczCompat.adjust(this.taczHits, src, amount);
+        if (amount <= 0.0F) return false;
         if (this.mchTimeSinceHit > 0) return false;                              // MCHeli's own cooldown (reference :819)
         if (src.is(DamageTypes.IN_FIRE) || src.is(DamageTypes.CACTUS)) return false; // no damage (reference :824,:828)
         // Client no-op BEFORE any state mutation (reference returns at isRemote :832, before the cooldown/RNG below) —

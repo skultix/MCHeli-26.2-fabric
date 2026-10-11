@@ -70,6 +70,10 @@ dependencies {
     // `include` embeds it as a Jar-in-Jar in the production mod jar.
     implementation project(':mcheli-agnostic')
     include project(':mcheli-agnostic')
+
+    // Optional mods for integration testing in dev runs only (never bundled): drop jars into fabric-26.2/compat-mods/
+    // (gitignored). E.g. TaCZ Refabricated + ForgeConfigAPIPort + PlayerAnimationLib for the TaCZ gametest.
+    localRuntime fileTree(dir: 'compat-mods', include: '*.jar')
 }
 
 // Production smoke test: installs a real Fabric server (installer + loader) and runs the BUILT jar with the Fabric API

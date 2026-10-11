@@ -6,7 +6,8 @@
   "environment": "client",
   "entrypoints": {
     "fabric-client-gametest": [
-      "mcheli.gametest.MchClientGameTest"
+      "mcheli.gametest.MchClientGameTest",
+      "mcheli.gametest.MchTaczGameTest"
     ]
   },
   "depends": {

@@ -72,6 +72,12 @@ Bundled content is under `mcheli-assets/assets/mcheli/`, described above.
 - The agnostic dependency has to be declared three ways: `implementation` (compile), `additionalRuntimeClasspath` (dev runs, otherwise `ClassNotFoundException`), and `jarJar` (production jar).
 - Do not put a `version { strictly ... }` block on the project dependency. It overwrites `project.version`.
 
+## Other-mod interop (Fabric)
+
+`mcheli.dependent.compat.TaczCompat` puts explosive TaCZ Refabricated ammo on MCHeli's damage scale. It has no compile dependency; TaCZ is detected and read by reflection. For a rocket that hits a vehicle directly, the vehicle takes the bullet damage plus the ammo's designed `explosion.damage`, and that rocket's own follow-up blast is ignored. The 26.2 TaCZ port's `ExplodeUtil` drops the designed damage and makes a vanilla radius-only explosion, so a near-miss blast is rescaled to the designed value. That rescaling switches itself off if TaCZ uses its own `ProjectileExplosion` again, as upstream does. Everything still goes through the vehicle's armor formula; MCHeli's own explosions use nearly the vanilla formula, so TNT and other vanilla blasts need no adjustment.
+
+To test against real TaCZ in dev, put the TaCZ, ForgeConfigAPIPort and PlayerAnimationLib jars in `fabric-26.2/compat-mods/` (gitignored, loaded via `localRuntime`). `MchTaczGameTest` then fires a real RPG-7 at an m1a2 (expect 121 damage); without the jars it skips.
+
 ## Commits
 
 Commit regularly at logical checkpoints, after the build or test is verified. Do **not** add `Co-Authored-By` or any other AI attribution to commit messages.

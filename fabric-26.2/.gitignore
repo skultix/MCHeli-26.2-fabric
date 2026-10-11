@@ -8,3 +8,6 @@ run/
 # IntelliJ IDEA
 .idea/
 *.iml
+
+# Optional third-party mods loaded into dev runs (e.g. TaCZ for the compat gametest); not redistributed
+compat-mods/
