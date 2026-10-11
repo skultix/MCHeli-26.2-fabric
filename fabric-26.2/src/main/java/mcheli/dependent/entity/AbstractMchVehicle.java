@@ -2855,7 +2855,9 @@ public abstract class AbstractMchVehicle extends Entity implements MchControllab
 
         if (isInvulnerableToBase(src) || isRemoved()) return false;
         // Other mods' weapons on MCHeli's damage scale (TaCZ explosive ammo: its designed blast damage) — see TaczCompat.
-        amount = mcheli.dependent.compat.TaczCompat.adjust(this.taczHits, src, amount);
+        MCH_AircraftInfo armorInfo = weaponHostInfo();
+        amount = mcheli.dependent.compat.TaczCompat.adjust(this.taczHits, src, amount,
+            armorInfo != null ? armorInfo.armorMinDamage : 0.0F);
         if (amount <= 0.0F) return false;
         if (this.mchTimeSinceHit > 0) return false;                              // MCHeli's own cooldown (reference :819)
         if (src.is(DamageTypes.IN_FIRE) || src.is(DamageTypes.CACTUS)) return false; // no damage (reference :824,:828)

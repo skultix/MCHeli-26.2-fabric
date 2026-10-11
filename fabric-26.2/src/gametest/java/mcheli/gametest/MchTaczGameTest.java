@@ -24,12 +24,38 @@ import org.slf4j.LoggerFactory;
  */
 public class MchTaczGameTest implements FabricClientGameTest {
     private static final Logger LOG = LoggerFactory.getLogger("mcheli-gametest");
+    /** TaCZ bullets spawned / where the last one ended (entity load/unload), to prove a shot fired and where it hit. */
+    private static final java.util.concurrent.atomic.AtomicInteger BULLETS_FIRED = new java.util.concurrent.atomic.AtomicInteger();
+    private static final java.util.concurrent.atomic.AtomicReference<net.minecraft.world.phys.Vec3> LAST_BULLET_END =
+        new java.util.concurrent.atomic.AtomicReference<>();
+    private static final java.util.concurrent.atomic.AtomicReference<net.minecraft.world.phys.Vec3> LAST_BULLET_STEP =
+        new java.util.concurrent.atomic.AtomicReference<>();
+    private static boolean listening;
+
+    private static boolean isTaczBullet(net.minecraft.world.entity.Entity e) {
+        return "tacz".equals(net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(e.getType()).getNamespace())
+            && e instanceof net.minecraft.world.entity.projectile.Projectile;
+    }
 
     @Override
     public void runTest(ClientGameTestContext ctx) {
         if (!FabricLoader.getInstance().isModLoaded("tacz")) {
             LOG.info("[GAMETEST-TACZ] TaCZ not present; skipped");
             return;
+        }
+        if (!listening) {
+            listening = true;
+            net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents.ENTITY_LOAD.register((e, level) -> {
+                if (isTaczBullet(e)) {
+                    BULLETS_FIRED.incrementAndGet();
+                }
+            });
+            net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents.ENTITY_UNLOAD.register((e, level) -> {
+                if (isTaczBullet(e)) {
+                    LAST_BULLET_END.set(e.position());
+                    LAST_BULLET_STEP.set(e.getDeltaMovement());
+                }
+            });
         }
         try (TestSingleplayerContext sp = ctx.worldBuilder().create()) {
             sp.getConnection().waitForChunksRender();
@@ -48,6 +74,25 @@ public class MchTaczGameTest implements FabricClientGameTest {
             int turret = fireAt(ctx, sp, 2.4, "turret");
             LOG.info("[GAMETEST-TACZ] m1a2 (maxHp 330): RPG-7 direct hit -> {}, RPG-7 into the turret -> {}, "
                 + "vanilla TNT 2 blocks away -> {} damage", direct, turret, tnt);
+            // Plain small-arms fire: none against an armoured tank, half damage against a helicopter (AWP: 42 -> 21).
+            moveTo(ctx, sp, 120);
+            int awpTank = fireAt(ctx, sp, "tacz:ai_awp", MchRegistries.TANK.get(), "m1a2", 1.2, "awp-tank");
+            moveTo(ctx, sp, 160);
+            int awpHeli = fireAt(ctx, sp, "tacz:ai_awp", MchRegistries.HELI.get(), "ah-64", 2.0, "awp-heli");
+            moveTo(ctx, sp, 200);
+            // Control for the 0 above: an UNARMOURED tank-category vehicle (growler, no ArmorMinDamage) still takes gunfire.
+            int awpGrowler = fireAt(ctx, sp, "tacz:ai_awp", MchRegistries.TANK.get(), "growler", 1.0, "awp-growler");
+            LOG.info("[GAMETEST-TACZ] AWP (42 dmg) -> m1a2 {} damage, ah-64 {} damage (maxHp 180), unarmoured growler {} damage",
+                awpTank, awpHeli, awpGrowler);
+            if (awpGrowler < 15) {
+                throw new AssertionError("a plain AWP round did only " + awpGrowler + " to the unarmoured growler");
+            }
+            if (awpTank != 0) {
+                throw new AssertionError("a plain AWP round damaged an armoured m1a2 (" + awpTank + ")");
+            }
+            if (awpHeli < 15 || awpHeli > 25) {
+                throw new AssertionError("a plain AWP round did " + awpHeli + " to an ah-64, expected ~21");
+            }
             if (turret < 60) {
                 throw new AssertionError("RPG-7 into the m1a2 turret did only " + turret + " damage");
             }
@@ -70,6 +115,12 @@ public class MchTaczGameTest implements FabricClientGameTest {
      *  the tank's accumulated damage. (TaCZ detonates a rocket where it was at the START of the tick it hit something,
      *  so near-miss geometry isn't controllable with this fast round — only the direct hit is asserted.) */
     private static int fireAt(ClientGameTestContext ctx, TestSingleplayerContext sp, double aimHeight, String label) {
+        return fireAt(ctx, sp, "tacz:rpg7", MchRegistries.TANK.get(), "m1a2", aimHeight, label);
+    }
+
+    private static int fireAt(ClientGameTestContext ctx, TestSingleplayerContext sp, String gun,
+                              net.minecraft.world.entity.EntityType<? extends AbstractMchVehicle> type, String config,
+                              double aimHeight, String label) {
         int[] tankId = {-1};
         sp.getServer().runOnServer(server -> {
             ServerPlayer p = server.getPlayerList().getPlayers().get(0);
@@ -77,18 +128,28 @@ public class MchTaczGameTest implements FabricClientGameTest {
             double x = p.getX();
             double z = p.getZ() + 8.0; // within the RPG-7 rocket's flat flight (it drops ~8 blocks out)
             int y = level.getHeight(Heightmap.Types.MOTION_BLOCKING, (int) Math.floor(x), (int) Math.floor(z));
-            AbstractMchVehicle tank = MchRegistries.TANK.get().create(level, EntitySpawnReason.SPAWN_ITEM_USE);
-            tank.setConfigName("m1a2");
+            AbstractMchVehicle tank = type.create(level, EntitySpawnReason.SPAWN_ITEM_USE);
+            tank.setConfigName(config);
             tank.setPos(x, y, z);
             level.addFreshEntity(tank);
             tankId[0] = tank.getId();
 
-            ItemStack rpg = buildGun(server, "tacz:rpg7");
+            ItemStack rpg = buildGun(server, gun);
             p.setItemInHand(InteractionHand.MAIN_HAND, rpg);
             Object op = operator(p);
             invoke(op, "draw", new Class<?>[] {Supplier.class}, (Supplier<ItemStack>) () -> p.getMainHandItem());
         });
-        ctx.waitTicks(40); // draw time
+        // Wait until TaCZ says the gun is READY (draw finished, no shoot cooldown — switching guns takes a while), rather
+        // than a fixed delay: a shot fired too early silently does nothing and would read as "0 damage".
+        ctx.waitTicks(5);
+        sp.getServer().waitFor(server -> {
+            Object op = operator(server.getPlayerList().getPlayers().get(0));
+            return (long) invoke(op, "getSynDrawCoolDown", new Class<?>[0]) <= 0
+                && (long) invoke(op, "getSynShootCoolDown", new Class<?>[0]) <= 0;
+        }, 200);
+        ctx.waitTicks(5);
+        int firedBefore = BULLETS_FIRED.get();
+        net.minecraft.world.phys.Vec3 eye = sp.getServer().computeOnServer(server -> server.getPlayerList().getPlayers().get(0).getEyePosition());
         sp.getServer().runOnServer(server -> {
             ServerPlayer p = server.getPlayerList().getPlayers().get(0);
             var tank = p.level().getEntity(tankId[0]);
@@ -106,6 +167,23 @@ public class MchTaczGameTest implements FabricClientGameTest {
             LOG.info("[GAMETEST-TACZ] {} shot: {}", label, result);
         });
         ctx.waitTicks(60);
+        // Proof the round was fired AND ended on the target (so a 0 means "absorbed", never "missed"/"never fired").
+        if (BULLETS_FIRED.get() == firedBefore) {
+            throw new AssertionError(label + ": the TaCZ gun did not fire (no bullet entity spawned)");
+        }
+        // The round's whole path (eye -> end of its final step) must cross the target's hull: TaCZ removes a round at the
+        // START of the tick it hit something (fast rounds move several blocks a tick), and piercing rounds fly on past.
+        // This is TaCZ's own hit geometry, so "crosses" means the round really went through the vehicle.
+        net.minecraft.world.phys.Vec3 end = LAST_BULLET_END.get();
+        net.minecraft.world.phys.Vec3 step = LAST_BULLET_STEP.get();
+        boolean struck = end != null && step != null && sp.getServer().computeOnServer(server -> {
+            var e = server.getPlayerList().getPlayers().get(0).level().getEntity(tankId[0]);
+            return e instanceof AbstractMchVehicle v && v.clipParts(eye, end.add(step.scale(2.0))) != null;
+        });
+        LOG.info("[GAMETEST-TACZ] {}: round fired, its path {} the target", label, struck ? "crosses" : "MISSES");
+        if (!struck) {
+            throw new AssertionError(label + ": the round did not reach the target");
+        }
         int damage = sp.getServer().computeOnServer(server -> {
             var e = server.getPlayerList().getPlayers().get(0).level().getEntity(tankId[0]);
             return e instanceof AbstractMchVehicle v ? v.getDamageTaken() : -1;

@@ -10,8 +10,9 @@ import net.minecraft.world.entity.Entity;
 import org.slf4j.Logger;
 
 /**
- * Soft integration with TaCZ (Refabricated): explosive TaCZ ammo (RPG-7, M320, ...) is scaled into MCHeli's damage
- * scale when it hits a vehicle. No compile dependency — TaCZ is detected and read by reflection, so MCHeli runs
+ * Soft integration with TaCZ (Refabricated), putting its guns on MCHeli's damage scale against vehicles: explosive
+ * ammo (RPG-7, M320, HE ammo mod) does its designed blast damage, and plain bullets do half damage to unarmoured
+ * vehicles and none to armoured ones ({@link #ARMORED_MIN_DAMAGE}). No compile dependency — TaCZ is detected and read by reflection, so MCHeli runs
  * unchanged without it.
  *
  * <p>Why: TaCZ gun packs give explosive ammo a designed blast damage ({@code bullet.explosion.damage}, e.g. RPG-7 =
@@ -36,6 +37,14 @@ public final class TaczCompat {
     private static final boolean LOADED = FabricLoader.getInstance().isModLoaded("tacz");
     private static final String BULLET_CLASS = "com.tacz.guns.entity.EntityKineticBullet";
 
+    /** Plain (non-explosive) TaCZ bullets deal this fraction of their damage to unarmoured vehicles: a vehicle's HP is
+     *  sized for MCHeli's own weapons, so full rifle damage (an AWP does 42) downs an AH-64 in five shots. */
+    public static final float SMALL_ARMS_FACTOR = 0.5F;
+    /** A vehicle whose config {@code ArmorMinDamage} is at least this is ARMOURED (the real tanks: m1a2, t-90, merkava,
+     *  kv-2, ...; 9..12): plain bullets do nothing to it — only explosive ammo and explosions do. Unarmoured "tanks"
+     *  (growler, bnr32, mxtmv) and everything else stay vulnerable to gunfire. */
+    public static final float ARMORED_MIN_DAMAGE = 5.0F;
+
     private static Class<?> bulletClass;
     private static Field explosionField;
     private static Field explosionDamageField;
@@ -55,13 +64,21 @@ public final class TaczCompat {
      * The damage a vehicle should take from {@code src}, or the incoming {@code amount} unchanged when the source is
      * not explosive TaCZ ammo. Returns 0 for a hit that was already counted.
      */
-    public static float adjust(HitMemory memory, DamageSource src, float amount) {
+    public static float adjust(HitMemory memory, DamageSource src, float amount, float armorMinDamage) {
         if (!LOADED) {
             return amount;
         }
         Entity direct = src.getDirectEntity();
-        if (direct == null || !isExplosiveBullet(direct)) {
+        if (direct == null || !isBullet(direct)) {
             return amount;
+        }
+        if (!isExplosive(direct)) {
+            LOG.info("[TACZ-DEBUG] plain bullet hurt amount={} armorMin={} src={}", amount, armorMinDamage, src.getMsgId());
+            // Plain small-arms fire: armoured vehicles shrug it off; everything else takes reduced damage.
+            if (src.is(DamageTypeTags.IS_EXPLOSION)) {
+                return amount;
+            }
+            return armorMinDamage >= ARMORED_MIN_DAMAGE ? 0.0F : amount * SMALL_ARMS_FACTOR;
         }
         float designed = readFloat(explosionDamageField, direct);
         if (src.is(DamageTypeTags.IS_EXPLOSION)) {
@@ -82,18 +99,20 @@ public final class TaczCompat {
         return amount + designed;
     }
 
-    private static boolean isExplosiveBullet(Entity e) {
+    private static boolean isBullet(Entity e) {
         if (reflectionFailed || !"tacz".equals(BuiltInRegistries.ENTITY_TYPE.getKey(e.getType()).getNamespace())) {
             return false;
         }
         if (bulletClass == null && !initReflection()) {
             return false;
         }
-        if (!bulletClass.isInstance(e)) {
-            return false;
-        }
+        return bulletClass.isInstance(e);
+    }
+
+    /** Whether a TaCZ bullet is explosive ammo (RPG/grenade rounds, or any gun loaded with the HE ammo mod). */
+    private static boolean isExplosive(Entity bullet) {
         try {
-            return explosionField.getBoolean(e);
+            return explosionField.getBoolean(bullet);
         } catch (IllegalAccessException ex) {
             return false;
         }

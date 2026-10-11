@@ -74,7 +74,7 @@ Bundled content is under `mcheli-assets/assets/mcheli/`, described above.
 
 ## Other-mod interop (Fabric)
 
-`mcheli.dependent.compat.TaczCompat` puts explosive TaCZ Refabricated ammo on MCHeli's damage scale. It has no compile dependency; TaCZ is detected and read by reflection. For a rocket that hits a vehicle directly, the vehicle takes the bullet damage plus the ammo's designed `explosion.damage`, and that rocket's own follow-up blast is ignored. The 26.2 TaCZ port's `ExplodeUtil` drops the designed damage and makes a vanilla radius-only explosion, so a near-miss blast is rescaled to the designed value. That rescaling switches itself off if TaCZ uses its own `ProjectileExplosion` again, as upstream does. Everything still goes through the vehicle's armor formula; MCHeli's own explosions use nearly the vanilla formula, so TNT and other vanilla blasts need no adjustment.
+`mcheli.dependent.compat.TaczCompat` puts TaCZ Refabricated guns on MCHeli's damage scale. Plain (non-explosive) bullets do nothing to armored vehicles (config `ArmorMinDamage` ≥ 5, i.e. the 9 real tanks) and half damage (`SMALL_ARMS_FACTOR`) to everything else. Explosive ammo (RPG, grenades, any gun with the HE ammo mod) and explosions damage everything. It has no compile dependency; TaCZ is detected and read by reflection. For a rocket that hits a vehicle directly, the vehicle takes the bullet damage plus the ammo's designed `explosion.damage`, and that rocket's own follow-up blast is ignored. The 26.2 TaCZ port's `ExplodeUtil` drops the designed damage and makes a vanilla radius-only explosion, so a near-miss blast is rescaled to the designed value. That rescaling switches itself off if TaCZ uses its own `ProjectileExplosion` again, as upstream does. Everything still goes through the vehicle's armor formula; MCHeli's own explosions use nearly the vanilla formula, so TNT and other vanilla blasts need no adjustment.
 
 **Hitboxes.** A vehicle's entity box stays the small physics core (`bodyWidth × bodyHeight`, default 2 × 0.7), which the flight and ground simulation rely on. Projectile hits use `AbstractMchVehicle.clipParts`, which tests three things:
 - a model-built hull (`mcheli.agnostic.physics.HullShape`): the drawn model minus rotor and propeller blades, voxelized at 0.5 blocks and merged into boxes, then tested in the vehicle's local frame so it follows yaw, pitch and roll;
@@ -83,7 +83,7 @@ Bundled content is under `mcheli-assets/assets/mcheli/`, described above.
 
 MCHeli bullets, vanilla projectiles (`ProjectileUtilMixin`) and TaCZ bullets (`TaczEntityUtilMixin`, `@Pseudo`, applied only when TaCZ is loaded) all use it. `HullShape.drawnPartsLower` is the single "which groups are drawn" rule, shared with the renderer. `MchHitboxGameTest` ray-checks every vehicle's hull.
 
-To test against real TaCZ in dev, put the TaCZ, ForgeConfigAPIPort and PlayerAnimationLib jars in `fabric-26.2/compat-mods/` (gitignored, loaded via `localRuntime`). `MchTaczGameTest` then fires a real RPG-7 at an m1a2 (expect 121 damage); without the jars it skips.
+To test against real TaCZ in dev, put the TaCZ, ForgeConfigAPIPort and PlayerAnimationLib jars in `fabric-26.2/compat-mods/` (gitignored, loaded via `localRuntime`). `MchTaczGameTest` then fires real RPG-7 and AWP rounds; it proves each round fired and passed through its target, and checks the damage (RPG-7 vs m1a2 121; AWP vs m1a2 0, vs ah-64 and growler about 20). Without the jars it skips.
 
 ## Commits
 
