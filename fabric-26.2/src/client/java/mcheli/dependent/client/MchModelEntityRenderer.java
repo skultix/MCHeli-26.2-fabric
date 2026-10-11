@@ -11,13 +11,10 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import mcheli.agnostic.aircraft.MCH_AircraftInfo;
-import mcheli.agnostic.helicopter.MCH_HeliInfo;
 import mcheli.agnostic.model.MchModel;
 import mcheli.agnostic.model.ModelGroup;
-import mcheli.agnostic.plane.MCP_PlaneInfo;
 import mcheli.agnostic.spi.ModelHandle;
 import mcheli.agnostic.value.Vec3d;
-import mcheli.agnostic.vehicle.MCH_VehicleInfo;
 import mcheli.agnostic.weapon.WeaponAim;
 import net.minecraft.world.entity.Entity;
 import org.joml.Quaternionf;
@@ -246,76 +243,9 @@ public abstract class MchModelEntityRenderer<T extends AbstractMchVehicle> exten
      *  the category infos) — the reference draws exactly {@code $body} + these; anything else is never drawn. Cached per
      *  config name. */
     private Set<String> declaredGroups(T entity) {
-        return this.declaredCache.computeIfAbsent(entity.configName(), n -> {
-            Set<String> s = new HashSet<>();
-            MCH_AircraftInfo info = entity.hostInfo();
-            if (info == null) {
-                return s;
-            }
-            addDrawn(s, info.partWeapon);
-            if (info.partWeapon != null) {
-                for (MCH_AircraftInfo.PartWeapon w : info.partWeapon) {
-                    if (w != null && w.child != null) {
-                        addDrawn(s, w.child);
-                    }
-                }
-            }
-            addDrawn(s, info.partWeaponBay);
-            addDrawn(s, info.hatchList);
-            addDrawn(s, info.lightHatchList);
-            addDrawn(s, info.canopyList);
-            addDrawn(s, info.landingGear);
-            addDrawn(s, info.partThrottle);
-            addDrawn(s, info.partRotPart);
-            addDrawn(s, info.cameraList);
-            addDrawn(s, info.partWheel);
-            addDrawn(s, info.partSteeringWheel);
-            addDrawn(s, info.partCrawlerTrack);
-            addDrawn(s, info.partTrackRoller);
-            if (info instanceof MCH_HeliInfo hi) {
-                addDrawn(s, hi.rotorList);
-            }
-            if (info instanceof MCP_PlaneInfo pi) {
-                addDrawn(s, pi.nozzles);
-                addDrawn(s, pi.rotorList);
-                for (MCP_PlaneInfo.Rotor r : pi.rotorList) {
-                    if (r != null) {
-                        addDrawn(s, r.blades);
-                    }
-                }
-                addDrawn(s, pi.wingList);
-                for (MCP_PlaneInfo.Wing w : pi.wingList) {
-                    if (w != null && w.pylonList != null) {
-                        addDrawn(s, w.pylonList);
-                    }
-                }
-            }
-            if (info instanceof MCH_VehicleInfo vi) {
-                collectVParts(vi.partList, s);
-            }
-            return s;
-        });
-    }
-
-    private static void addDrawn(Set<String> out, java.util.List<? extends MCH_AircraftInfo.DrawnPart> parts) {
-        if (parts != null) {
-            for (MCH_AircraftInfo.DrawnPart p : parts) {
-                if (p != null) {
-                    out.add(("$" + p.modelName).toLowerCase(Locale.ROOT));
-                }
-            }
-        }
-    }
-
-    private static void collectVParts(java.util.List<MCH_VehicleInfo.VPart> parts, Set<String> out) {
-        if (parts != null) {
-            for (MCH_VehicleInfo.VPart p : parts) {
-                if (p != null) {
-                    out.add(("$" + p.modelName).toLowerCase(Locale.ROOT));
-                    collectVParts(p.child, out);
-                }
-            }
-        }
+        // Shared with the hit hull (HullShape) so what is drawn and what can be hit never drift apart.
+        return this.declaredCache.computeIfAbsent(entity.configName(),
+            n -> mcheli.agnostic.physics.HullShape.drawnPartsLower(entity.hostInfo()));
     }
 
     /** Lower-cased {@code $weaponN}/{@code $weaponN_M} groups the config declares as {@code AddPartWeapon}s — the aircraft

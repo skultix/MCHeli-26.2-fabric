@@ -40,11 +40,17 @@ public class MchTaczGameTest implements FabricClientGameTest {
             // Each scenario on untouched ground 40 blocks apart: the rocket and TNT blasts crater the terrain, which would
             // change the next scenario's impact point and the blast exposure (getSeenPercent).
             moveTo(ctx, sp, 0);
-            int direct = fireAt(ctx, sp, "direct");
+            int direct = fireAt(ctx, sp, 0.35, "direct");
             moveTo(ctx, sp, 40);
             int tnt = tntBeside(ctx, sp, 2.0);
-            LOG.info("[GAMETEST-TACZ] m1a2 (maxHp 330): RPG-7 direct hit -> {}, vanilla TNT 2 blocks away -> {} damage",
-                direct, tnt);
+            moveTo(ctx, sp, 80);
+            // The turret sits well above the 0.7-tall physics core: only the hull part boxes (TaczEntityUtilMixin) catch it.
+            int turret = fireAt(ctx, sp, 2.4, "turret");
+            LOG.info("[GAMETEST-TACZ] m1a2 (maxHp 330): RPG-7 direct hit -> {}, RPG-7 into the turret -> {}, "
+                + "vanilla TNT 2 blocks away -> {} damage", direct, turret, tnt);
+            if (turret < 60) {
+                throw new AssertionError("RPG-7 into the m1a2 turret did only " + turret + " damage");
+            }
             if (direct < 60) {
                 throw new AssertionError("RPG-7 direct hit did only " + direct + " damage to an m1a2");
             }
@@ -63,7 +69,7 @@ public class MchTaczGameTest implements FabricClientGameTest {
     /** Spawn a fresh m1a2 8 blocks ahead (inside the RPG-7 rocket's flat flight), fire one RPG-7 at its hull and return
      *  the tank's accumulated damage. (TaCZ detonates a rocket where it was at the START of the tick it hit something,
      *  so near-miss geometry isn't controllable with this fast round — only the direct hit is asserted.) */
-    private static int fireAt(ClientGameTestContext ctx, TestSingleplayerContext sp, String label) {
+    private static int fireAt(ClientGameTestContext ctx, TestSingleplayerContext sp, double aimHeight, String label) {
         int[] tankId = {-1};
         sp.getServer().runOnServer(server -> {
             ServerPlayer p = server.getPlayerList().getPlayers().get(0);
@@ -88,7 +94,7 @@ public class MchTaczGameTest implements FabricClientGameTest {
             var tank = p.level().getEntity(tankId[0]);
             double dx = tank.getX() - p.getX();
             double dz = tank.getZ() - p.getZ();
-            double dy = tank.getY() + 0.35 - p.getEyeY();
+            double dy = tank.getY() + aimHeight - p.getEyeY();
             float yaw = (float) Math.toDegrees(Math.atan2(-dx, dz));
             float pitch = (float) -Math.toDegrees(Math.atan2(dy, Math.sqrt(dx * dx + dz * dz)));
             p.setYRot(yaw);

@@ -19,7 +19,8 @@
   },
   "accessWidener": "mcheli.classtweaker",
   "mixins": [
-    "mcheli.mixins.json"
+    "mcheli.mixins.json",
+    "mcheli.compat.mixins.json"
   ],
   "depends": {
     "fabricloader": ">=0.19.5",

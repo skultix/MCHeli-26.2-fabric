@@ -4,7 +4,8 @@
   "package": "mcheli.dependent.mixin",
   "compatibilityLevel": "JAVA_25",
   "mixins": [
-    "BuiltInPackSourceMixin"
+    "BuiltInPackSourceMixin",
+    "ProjectileUtilMixin"
   ],
   "client": [
     "CameraMixin",

@@ -3059,8 +3059,8 @@ public abstract class AbstractMchVehicle extends Entity implements MchControllab
      * boxes into the bullet's own intercept, so protruding zones are hittable. Returns null if the segment misses all.
      */
     public Vec3 clipParts(Vec3 from, Vec3 to) {
-        Vec3 best = null;
-        double bestSq = Double.MAX_VALUE;
+        Vec3 best = clipHull(from, to);
+        double bestSq = best != null ? from.distanceToSqr(best) : Double.MAX_VALUE;
         java.util.Optional<Vec3> coreHit = coreBox().clip(from, to);
         if (coreHit.isPresent()) {
             bestSq = from.distanceToSqr(coreHit.get());
@@ -3079,6 +3079,47 @@ public abstract class AbstractMchVehicle extends Entity implements MchControllab
             }
         }
         return best;
+    }
+
+    /** Model-built hit hulls, one per vehicle (config + model), shared by every entity of that vehicle. */
+    private static final java.util.Map<String, java.util.Optional<mcheli.agnostic.physics.HullShape>> HULLS =
+        new java.util.concurrent.ConcurrentHashMap<>();
+
+    /** This vehicle's hull shape (built from its model on first use; empty when it has no model). */
+    private mcheli.agnostic.physics.HullShape hullShape() {
+        MCH_AircraftInfo info = weaponHostInfo();
+        String name = configName();
+        if (info == null || name == null || name.isEmpty()) {
+            return null;
+        }
+        return HULLS.computeIfAbsent(modelDir() + "/" + name, path -> {
+            mcheli.agnostic.spi.ModelHandle h = mcheli.dependent.port.MchContentPacks.resources().loadModel(path);
+            return h instanceof mcheli.agnostic.model.MchModel m
+                ? java.util.Optional.of(mcheli.agnostic.physics.HullShape.build(m, info, 0.5))
+                : java.util.Optional.empty();
+        }).orElse(null);
+    }
+
+    /**
+     * Where the world segment {@code [from, to]} first enters this vehicle's model-shaped hull ({@link
+     * mcheli.agnostic.physics.HullShape}: the drawn model minus rotor blades), or null. The segment is carried into the
+     * hull's local frame with the renderer's transform — {@code world = pos + (0,-minY,0) + R(yaw,pitch,roll)·model} — so
+     * the hull turns, pitches and rolls with the vehicle.
+     */
+    private Vec3 clipHull(Vec3 from, Vec3 to) {
+        mcheli.agnostic.physics.HullShape hull = hullShape();
+        if (hull == null) {
+            return null;
+        }
+        org.joml.Quaternionf inv = bodyRotation(1.0F).conjugate();
+        double minY = modelMinY();
+        org.joml.Vector3f a = new org.joml.Vector3f(
+            (float) (from.x - getX()), (float) (from.y - getY() + minY), (float) (from.z - getZ())).rotate(inv);
+        org.joml.Vector3f b = new org.joml.Vector3f(
+            (float) (to.x - getX()), (float) (to.y - getY() + minY), (float) (to.z - getZ())).rotate(inv);
+        // local = R⁻¹·(world − pos + (0,minY,0)) − (0,minY,0): the hull's Y is the lifted render space (lowest vertex = 0).
+        double t = hull.clip(a.x, a.y - minY, a.z, b.x, b.y - minY, b.z);
+        return Double.isNaN(t) ? null : from.add(to.subtract(from).scale(t));
     }
 
     /** Test/diagnostic hook: rebuild (if needed) + reposition the part hitboxes to the current pose without a tick. */

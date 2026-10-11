@@ -7,7 +7,8 @@
   "entrypoints": {
     "fabric-client-gametest": [
       "mcheli.gametest.MchClientGameTest",
-      "mcheli.gametest.MchTaczGameTest"
+      "mcheli.gametest.MchTaczGameTest",
+      "mcheli.gametest.MchHitboxGameTest"
     ]
   },
   "depends": {
