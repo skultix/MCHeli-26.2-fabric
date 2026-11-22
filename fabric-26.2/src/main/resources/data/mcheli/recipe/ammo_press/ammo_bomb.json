@@ -1,0 +1,12 @@
+{
+  "fabric:load_conditions": [{"condition": "fabric:all_mods_loaded", "values": ["hbm"]}],
+  "type": "hbm:ammo_press",
+  "key": {
+    "A": {"count": 4, "ingredient": "#c:ingots/steel"},
+    "D": {"count": 2, "ingredient": "#c:ingots/aluminum"},
+    "B": {"count": 4, "ingredient": "hbm:ball_tatb"}
+  },
+  "order": 2000004,
+  "output_items": [{"count": 1, "id": "mcheli:ammo_bomb"}],
+  "pattern": ["DA ", " B ", "   "]
+}

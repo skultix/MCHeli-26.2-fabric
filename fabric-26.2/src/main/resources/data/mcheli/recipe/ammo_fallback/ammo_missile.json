@@ -1,0 +1,8 @@
+{
+  "fabric:load_conditions": [{"condition": "fabric:not", "value": {"condition": "fabric:all_mods_loaded", "values": ["hbm"]}}],
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["IRI", "ITI", "IGI"],
+  "key": {"I": "minecraft:iron_ingot", "R": "minecraft:redstone", "T": "minecraft:tnt", "G": "minecraft:gunpowder"},
+  "result": {"id": "mcheli:ammo_missile", "count": 1}
+}

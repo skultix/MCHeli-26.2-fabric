@@ -230,6 +230,19 @@ public final class WeaponSlot {
         return mount;
     }
 
+    /** Ticks until this weapon can fire again (per-shot cooldown or magazine reload, whichever is longer). */
+    public int readyInTicks() {
+        return Math.max(this.countWait, this.reloadWait);
+    }
+
+    /** Hold fire for at least {@code ticks} — the shared reload of a tank's main gun (see
+     *  {@link VehicleWeapons#shareMainGunCooldown}). Only blocks firing; the magazine is untouched. */
+    public void holdFor(int ticks) {
+        if (ticks > this.countWait) {
+            this.countWait = ticks;
+        }
+    }
+
     /** Reset the barrel round-robin (reference {@code onSwitchWeapon} zeroes {@code currentWeaponIndex}). */
     public void onDeselect() {
         this.barrel = 0;
@@ -271,6 +284,8 @@ public final class WeaponSlot {
             t = (float) this.reloadWait / (this.info.reloadTime > 0 ? this.info.reloadTime : 1);
         }
         t = Math.abs(t);
+        // A hold imposed by a shared main-gun reload shows as a reload too.
+        t = Math.max(t, (float) this.countWait / Math.max(1, reloadIntervalTicks()));
         return t > 1.0F ? 1.0F : t;
     }
 

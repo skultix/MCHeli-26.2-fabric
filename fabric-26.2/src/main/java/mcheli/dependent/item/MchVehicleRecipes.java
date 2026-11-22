@@ -64,13 +64,25 @@ public final class MchVehicleRecipes {
         int skipped = 0;
         // Sorted by name so the emitted set — and any recipe-shadowing tie-break — is deterministic across runs.
         List<MCH_AircraftInfo> all = new ArrayList<>();
-        collect(all, MCH_HeliInfoManager.getInstance());
-        collect(all, MCP_PlaneInfoManager.getInstance());
-        collect(all, MCH_TankInfoManager.getInstance());
-        collect(all, MCH_VehicleInfoManager.getInstance());
+        Map<MCH_AircraftInfo, String> category = new java.util.IdentityHashMap<>();
+        collect(all, category, "helicopter", MCH_HeliInfoManager.getInstance());
+        collect(all, category, "plane", MCP_PlaneInfoManager.getInstance());
+        collect(all, category, "tank", MCH_TankInfoManager.getInstance());
+        collect(all, category, "vehicle", MCH_VehicleInfoManager.getInstance());
         all.sort((a, b) -> a.name.compareToIgnoreCase(b.name));
+        // With NTM installed every vehicle is built in its assembly machine instead (MCH_VehicleAssembly), and the
+        // configs' crafting-table recipes are not served.
+        boolean ntm = net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("hbm");
+        int order = 3000000;
 
         for (MCH_AircraftInfo info : all) {
+            if (ntm) {
+                Identifier id = Identifier.tryBuild("mcheli", info.name.toLowerCase(java.util.Locale.ROOT));
+                if (id != null && BuiltInRegistries.ITEM.containsKey(id)) {
+                    out.put("assembly_machine/" + id.getPath(), assemblyJson(info, category.get(info), id, order++));
+                }
+                continue;
+            }
             if (info.recipeString == null || info.recipeString.isEmpty()) {
                 continue;
             }
@@ -99,13 +111,14 @@ public final class MchVehicleRecipes {
                                : info.name.toLowerCase(java.util.Locale.ROOT) + "_" + n, json);
             }
         }
-        LOGGER.info("MCHeli: built {} vehicle crafting recipes ({} skipped)", out.size(), skipped);
+        LOGGER.info("MCHeli: built {} vehicle {} recipes ({} skipped)", out.size(), ntm ? "NTM assembly machine" : "crafting", skipped);
         return out;
     }
 
     /** {@code MCH_InfoManagerBase.getMap()} is a raw {@code Map}; take only the aircraft-shaped values from it. */
     @SuppressWarnings("rawtypes")
-    private static void collect(List<MCH_AircraftInfo> out, mcheli.agnostic.info.MCH_InfoManagerBase mgr) {
+    private static void collect(List<MCH_AircraftInfo> out, Map<MCH_AircraftInfo, String> category, String cat,
+                                mcheli.agnostic.info.MCH_InfoManagerBase mgr) {
         Map map = mgr.getMap();
         if (map == null) {
             return;
@@ -113,8 +126,28 @@ public final class MchVehicleRecipes {
         for (Object v : map.values()) {
             if (v instanceof MCH_AircraftInfo info) {
                 out.add(info);
+                category.put(info, cat);
             }
         }
+    }
+
+    /** An NTM assembly-machine recipe ({@code hbm:assembly_machine}) for one vehicle. */
+    private static String assemblyJson(MCH_AircraftInfo info, String category, Identifier result, int order) {
+        mcheli.agnostic.recipe.MCH_VehicleAssembly.Recipe r = mcheli.agnostic.recipe.MCH_VehicleAssembly.recipeFor(
+            info.name, category, info.maxHp, info.getWeaponNum());
+        StringBuilder sb = new StringBuilder(512);
+        sb.append("{\"type\":\"hbm:assembly_machine\",\"duration\":").append(r.durationTicks())
+          .append(",\"power\":").append(r.power()).append(",\"order\":").append(order).append(",\"input_items\":[");
+        for (int i = 0; i < r.inputs().size(); i++) {
+            mcheli.agnostic.recipe.MCH_VehicleAssembly.Input in = r.inputs().get(i);
+            if (i > 0) {
+                sb.append(',');
+            }
+            sb.append("{\"count\":").append(in.count()).append(",\"ingredient\":\"").append(escape(in.ingredient()))
+              .append("\"}");
+        }
+        sb.append("],\"output_items\":[\"").append(result).append("\"]}");
+        return sb.toString();
     }
 
     /** Render one spec as a vanilla crafting JSON, or {@code null} if an ingredient does not resolve. */

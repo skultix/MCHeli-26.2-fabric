@@ -2095,8 +2095,8 @@ public abstract class AbstractMchVehicle extends Entity implements MchControllab
     /**
      * Rearm ONE weapon by index from the riding GUI — the port of {@code supplyAmmo} / {@code canPlayerSupplyAmmo}: the
      * vehicle must be grounded ({@link #canSupply()}) and the weapon must have a finite reserve that is not already
-     * full; the config's ammo items ({@code Item = count, name} — most bundled weapons need iron ingots + gunpowder)
-     * are consumed from the player's main inventory first, regardless of game mode, as in the reference
+     * full; the weapon's ammo item (one basic ammo item per supply, see {@code MCH_AmmoClass}; weapons that fire no
+     * ammunition keep their config's {@code Item = count, name}) is consumed from the player's main inventory first, regardless of game mode, as in the reference
      * ({@code canPlayerSupplyAmmo}/{@code supplyAmmo} have no creative bypass). A water/lava-bucket round hands back an
      * empty bucket. The index is the weapon the GUI is SHOWING, so it is bounds-checked here — a modified client
      * cannot address a weapon that does not exist. Returns true if a supply pulse was granted.
@@ -2169,8 +2169,11 @@ public abstract class AbstractMchVehicle extends Entity implements MchControllab
         if (s.isEmpty() || ri.itemName == null) {
             return false;
         }
-        return net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(s.getItem()).getPath()
-            .equalsIgnoreCase(ri.itemName);
+        net.minecraft.resources.Identifier key = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(s.getItem());
+        // A namespaced name (the basic ammo items, "mcheli:ammo_bullet") must match exactly; a bare config name
+        // ("iron_ingot") matches by path, as the reference did.
+        return ri.itemName.indexOf(':') >= 0 ? key.toString().equalsIgnoreCase(ri.itemName)
+                                               : key.getPath().equalsIgnoreCase(ri.itemName);
     }
 
     /**
@@ -2512,6 +2515,9 @@ public abstract class AbstractMchVehicle extends Entity implements MchControllab
         }
         boolean creative = shooter instanceof Player pl && pl.getAbilities().instabuild;
         MCH_AircraftInfo.Weapon mount = slot.fireOneShot(creative);
+        if (this instanceof MchTank) {
+            this.weapons.shareMainGunCooldown(slot); // one breech: every round of the main gun shares its reload
+        }
         MCH_WeaponInfo wi = slot.info;
         if (firesRotBarrel(slot)) {
             this.firedCooldownTicks = 4; // reference MCH_WeaponSet.WAIT_CLEAR_USED_COUNT — barrel stays "used" ~4 ticks
@@ -2859,6 +2865,24 @@ public abstract class AbstractMchVehicle extends Entity implements MchControllab
         amount = mcheli.dependent.compat.TaczCompat.adjust(this.taczHits, src, amount,
             armorInfo != null ? armorInfo.armorMinDamage : 0.0F);
         if (amount <= 0.0F) return false;
+        // NTM blasts against tanks: nukes and big NTM explosions destroy them, the anti-tank mine does a fixed amount.
+        boolean pastArmor = false;
+        if (this instanceof MchTank && src.is(DamageTypeTags.IS_EXPLOSION)) {
+            mcheli.dependent.compat.NtmCompat.Effect ntm = mcheli.dependent.compat.NtmCompat.forTank(src);
+            if (ntm instanceof mcheli.dependent.compat.NtmCompat.Destroy) {
+                if (!this.level().isClientSide() && !isDestroyed()) {
+                    setDamageTaken(getMaxHp());
+                    markHurt();
+                    destroyVehicle(src.getEntity(), false);
+                    this.mchTimeSinceHit = 20;
+                }
+                return true;
+            }
+            if (ntm instanceof mcheli.dependent.compat.NtmCompat.Fixed f) {
+                amount = f.damage();
+                pastArmor = true;
+            }
+        }
         if (this.mchTimeSinceHit > 0) return false;                              // MCHeli's own cooldown (reference :819)
         if (src.is(DamageTypes.IN_FIRE) || src.is(DamageTypes.CACTUS)) return false; // no damage (reference :824,:828)
         // Client no-op BEFORE any state mutation (reference returns at isRemote :832, before the cooldown/RNG below) —
@@ -2888,7 +2912,7 @@ public abstract class AbstractMchVehicle extends Entity implements MchControllab
         MCH_AircraftInfo info = weaponHostInfo();
 
         if (!isDestroyed()) {
-            if (!playerBreak && !lava && !onFire && info != null) {               // ARMOR FORMULA (reference :884-908)
+            if (!playerBreak && !lava && !onFire && !pastArmor && info != null) { // ARMOR FORMULA (reference :884-908)
                 if (amount > info.armorMaxDamage) amount = info.armorMaxDamage;   // (a) cap
                 if (factor <= 1.0F) amount *= factor;                            // (b) armor plate, applied BEFORE
                 amount *= info.armorDamageFactor;                                // (c)

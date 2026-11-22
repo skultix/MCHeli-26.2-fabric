@@ -63,6 +63,13 @@ public class MCHeli implements ModInitializer {
         MCH_VehicleInfoManager.getInstance().load(res, log, "vehicles");
         MCH_WeaponInfoManager.getInstance().load(res, log, "weapons");
         mcheli.agnostic.hud.MCH_HudManager.getInstance().load(res, log);
+        // Every weapon reloads from one of the four basic ammo items instead of its config's raw materials.
+        @SuppressWarnings("unchecked")
+        java.util.Collection<MCH_WeaponInfo> allWeapons = new java.util.ArrayList<>(
+            ((java.util.Map<String, Object>) MCH_WeaponInfoManager.getInstance().getMap()).values().stream()
+                .filter(MCH_WeaponInfo.class::isInstance).map(MCH_WeaponInfo.class::cast).toList());
+        LOGGER.info("MCHeli: {} weapons reload from the basic ammo items",
+            mcheli.agnostic.weapon.MCH_AmmoClass.apply(allWeapons));
         // Server damage tuning (config/mcheli-damage.json) on top of the weapon configs just parsed.
         mcheli.dependent.MchDamageConfig.load();
         mcheli.dependent.MchDamageConfig.registerCommand();

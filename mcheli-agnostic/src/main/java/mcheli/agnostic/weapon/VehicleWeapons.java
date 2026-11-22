@@ -192,6 +192,34 @@ public final class VehicleWeapons {
         }
     }
 
+    /**
+     * A tank's main gun has one breech: firing any of its rounds (APFSDS, HE, a gun-launched ATGM) puts every other
+     * round fired from the same mount, by the same seat, on the same reload. Machine guns ({@link MCH_AmmoClass#BULLET})
+     * and weapons on other mounts (a coaxial MG, a roof launcher) keep their own timers.
+     */
+    public void shareMainGunCooldown(WeaponSlot fired) {
+        if (!isMainGunRound(fired)) {
+            return;
+        }
+        int wait = fired.readyInTicks();
+        MCH_AircraftInfo.Weapon m = fired.mounts.get(0);
+        for (WeaponSlot s : this.slots) {
+            if (s != fired && s.seatID() == fired.seatID() && isMainGunRound(s) && sameMount(s.mounts.get(0), m)) {
+                s.holdFor(wait);
+            }
+        }
+    }
+
+    private static boolean isMainGunRound(WeaponSlot s) {
+        MCH_AmmoClass c = MCH_AmmoClass.classify(s.info);
+        return c != MCH_AmmoClass.BULLET && c != MCH_AmmoClass.NONE;
+    }
+
+    private static boolean sameMount(MCH_AircraftInfo.Weapon a, MCH_AircraftInfo.Weapon b) {
+        return Math.abs(a.pos.x() - b.pos.x()) < 0.05 && Math.abs(a.pos.y() - b.pos.y()) < 0.05
+            && Math.abs(a.pos.z() - b.pos.z()) < 0.05;
+    }
+
     /** Every weapon that tracks a finite reserve — what an ammo-supply aura tops up. */
     public List<WeaponSlot> economySlots() {
         List<WeaponSlot> out = new ArrayList<>();

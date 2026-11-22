@@ -1,0 +1,12 @@
+{
+  "fabric:load_conditions": [{"condition": "fabric:all_mods_loaded", "values": ["hbm"]}],
+  "type": "hbm:ammo_press",
+  "key": {
+    "A": {"count": 5, "ingredient": "#c:ingots/steel"},
+    "B": {"count": 4, "ingredient": "hbm:ball_tatb"},
+    "C": {"ingredient": "hbm:casing_large"}
+  },
+  "order": 2000002,
+  "output_items": [{"count": 1, "id": "mcheli:ammo_tank_shell"}],
+  "pattern": [" A ", " B ", " C "]
+}

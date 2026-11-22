@@ -10,7 +10,8 @@
       "mcheli.gametest.MchClientGameTest",
       "mcheli.gametest.MchTaczGameTest",
       "mcheli.gametest.MchHitboxGameTest",
-      "mcheli.gametest.MchDamageConfigGameTest"
+      "mcheli.gametest.MchDamageConfigGameTest",
+      "mcheli.gametest.MchNtmGameTest"
     ]
   },
   "depends": {

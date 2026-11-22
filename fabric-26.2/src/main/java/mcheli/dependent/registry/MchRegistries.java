@@ -171,6 +171,12 @@ public final class MchRegistries {
     public static final MchHolder<mcheli.dependent.item.MchContainerItem> CONTAINER_ITEM =
         item("container", mcheli.dependent.item.MchContainerItem::new, new Item.Properties());
 
+    /** The four basic vehicle ammo items a weapon is reloaded with ({@link mcheli.agnostic.weapon.MCH_AmmoClass}). */
+    public static final MchHolder<Item> AMMO_BULLET = item("ammo_bullet", Item::new, new Item.Properties());
+    public static final MchHolder<Item> AMMO_TANK_SHELL = item("ammo_tank_shell", Item::new, new Item.Properties().stacksTo(16));
+    public static final MchHolder<Item> AMMO_MISSILE = item("ammo_missile", Item::new, new Item.Properties().stacksTo(16));
+    public static final MchHolder<Item> AMMO_BOMB = item("ammo_bomb", Item::new, new Item.Properties().stacksTo(16));
+
     /** Refill a used fuel can by crafting it with coal (reference {@code MCH_RecipeFuel}). */
     public static final MchHolder<net.minecraft.world.item.crafting.RecipeSerializer<mcheli.dependent.item.MchFuelRefillRecipe>> FUEL_REFILL =
         register(BuiltInRegistries.RECIPE_SERIALIZER, "fuel_refill", mcheli.dependent.item.MchFuelRefillRecipe.SERIALIZER);
@@ -245,7 +251,7 @@ public final class MchRegistries {
         return d != null ? d.get() : null;
     }
 
-    private static List<MchHolder<VehicleSpawnItem>> itemsOf(Category cat) {
+    public static List<MchHolder<VehicleSpawnItem>> itemsOf(Category cat) {
         return ITEMS_BY_CATEGORY.getOrDefault(cat, Collections.emptyList());
     }
 
@@ -287,6 +293,10 @@ public final class MchRegistries {
                 output.accept(new ItemStack(FUEL.get()));        // every category burns fuel, so every tab offers the can
                 output.accept(new ItemStack(WRENCH.get()));      // ...and every vehicle can be mended with the wrench
                 output.accept(new ItemStack(CONTAINER_ITEM.get())); // ...and the cargo box rides with any of them
+                output.accept(new ItemStack(AMMO_BULLET.get()));    // ...and is reloaded with the basic ammo items
+                output.accept(new ItemStack(AMMO_TANK_SHELL.get()));
+                output.accept(new ItemStack(AMMO_MISSILE.get()));
+                output.accept(new ItemStack(AMMO_BOMB.get()));
             })
             .build());
     }

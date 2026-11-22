@@ -87,6 +87,10 @@ Bundled content is under `mcheli-assets/assets/mcheli/`, described above.
 
 MCHeli bullets, vanilla projectiles (`ProjectileUtilMixin`) and TaCZ bullets (`TaczEntityUtilMixin`, `@Pseudo`, applied only when TaCZ is loaded) all use it. `HullShape.drawnPartsLower` is the single "which groups are drawn" rule, shared with the renderer. `MchHitboxGameTest` ray-checks every vehicle's hull.
 
+**NTM (HBM's Nuclear Tech Mod).** With `hbm` loaded, `MchVehicleRecipes` serves NTM assembly-machine recipes (`MCH_VehicleAssembly`, agnostic and unit-tested) instead of the configs' crafting recipes, and weapons reload from the four basic ammo items (`MCH_AmmoClass`, applied to every `MCH_WeaponInfo` after loading), which NTM's ammo press makes (`data/mcheli/recipe/ammo_press/`, with `fabric:load_conditions`). `NtmCompat` applies the `ntm` damage rules to tanks; `ServerExplosionMixin` and the `@Pseudo` `NtmExplosionVNTMixin` expose the explosion being processed, and the call stack says whether NTM caused it. User reference: `docs/ntm-integration.md`. To run `MchNtmGameTest`, put the NTM jar and Crankshaft in `fabric-26.2/compat-mods/`.
+
+**Crew.** Players riding an intact vehicle take no damage and die when it is destroyed (`MchCrewProtection`, `crew` in the damage config). Tank main-gun rounds on one mount share a reload (`VehicleWeapons.shareMainGunCooldown`). Client test runs: use a hidden Xvfb display; see `MchRiderGameTest` for dedicated-server testing.
+
 To test against real TaCZ in dev, put the TaCZ, ForgeConfigAPIPort and PlayerAnimationLib jars in `fabric-26.2/compat-mods/` (gitignored, loaded via `localRuntime`). `MchTaczGameTest` then fires real RPG-7 and AWP rounds; it proves each round fired and passed through its target, and checks the damage (RPG-7 vs m1a2 121; AWP vs m1a2 0, vs ah-64 and growler about 20). Without the jars it skips.
 
 ## Commits

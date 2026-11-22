@@ -5,7 +5,8 @@
   "plugin": "mcheli.dependent.mixin.compat.CompatMixinPlugin",
   "compatibilityLevel": "JAVA_25",
   "mixins": [
-    "TaczEntityUtilMixin"
+    "TaczEntityUtilMixin",
+    "NtmExplosionVNTMixin"
   ],
   "injectors": {
     "defaultRequire": 0

@@ -48,6 +48,8 @@ public class MCH_DamageSettings {
    public Tacz tacz = new Tacz();
    /** What happens to the players riding a vehicle. */
    public Crew crew = new Crew();
+   /** NTM (HBM Nuclear Tech) explosions against tanks (only used when NTM is installed). */
+   public Ntm ntm = new Ntm();
 
    public static class Multipliers {
       public Float directDamage;
@@ -79,6 +81,16 @@ public class MCH_DamageSettings {
       public float armoredMinDamage = 5.0F;
    }
 
+   public static class Ntm {
+      /** A tank caught in an NTM nuclear blast is destroyed. */
+      public boolean nuclearDestroysTanks = true;
+      /** A tank caught in any other NTM explosion at least this big is destroyed (NTM's TNT, C4, semtex and dynamite
+       *  excepted; EMPs do no damage). 0 = every one, however small. */
+      public float destroyTanksAtExplosionSize = 6.0F;
+      /** Damage an NTM anti-tank mine does to a tank, past its armour. */
+      public float antiTankMineDamage = 50.0F;
+   }
+
    public static class Crew {
       /** Riders take no damage while their vehicle is intact (/kill and the void still apply). */
       public boolean protectedWhileMounted = true;
@@ -106,6 +118,9 @@ public class MCH_DamageSettings {
       if (this.weapons == null) this.weapons = new LinkedHashMap<>();
       if (this.tacz == null) this.tacz = new Tacz();
       if (this.crew == null) this.crew = new Crew();
+      if (this.ntm == null) this.ntm = new Ntm();
+      this.ntm.destroyTanksAtExplosionSize = nonNegative(this.ntm.destroyTanksAtExplosionSize, "ntm.destroyTanksAtExplosionSize", w);
+      this.ntm.antiTankMineDamage = nonNegative(this.ntm.antiTankMineDamage, "ntm.antiTankMineDamage", w);
       this.directDamage = nonNegative(this.directDamage, "directDamage", w);
       this.explosionDamage = nonNegative(this.explosionDamage, "explosionDamage", w);
       for (String k : this.vsTarget.keySet()) {

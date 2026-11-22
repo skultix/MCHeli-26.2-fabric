@@ -15,6 +15,9 @@ public final class CompatMixinPlugin implements IMixinConfigPlugin {
         if (simple.startsWith("Tacz")) {
             return FabricLoader.getInstance().isModLoaded("tacz");
         }
+        if (simple.startsWith("Ntm")) {
+            return FabricLoader.getInstance().isModLoaded("hbm");
+        }
         return true;
     }
 

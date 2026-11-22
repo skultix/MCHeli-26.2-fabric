@@ -65,7 +65,8 @@ weapon, so it is not in this file (see [What this file does not cover](#what-thi
     "m230": { "power": 12, "damageFactor": { "player": 0.5 } }
   },
   "tacz": { "smallArmsFactor": 0.5, "smallArmsVsArmoredFactor": 0.0, "armoredMinDamage": 5.0 },
-  "crew": { "protectedWhileMounted": true, "diesWithVehicle": true }
+  "crew": { "protectedWhileMounted": true, "diesWithVehicle": true },
+  "ntm": { "nuclearDestroysTanks": true, "destroyTanksAtExplosionSize": 6.0, "antiTankMineDamage": 50.0 }
 }
 ```
 
@@ -149,6 +150,20 @@ What happens to players riding an MCHeli vehicle.
 |---|---|---|
 | `protectedWhileMounted` | true | Riders take no damage of any kind while their vehicle is intact, so the vehicle's HP is the crew's HP. `/kill` and the void still apply. |
 | `diesWithVehicle` | true | When the vehicle is destroyed, the players aboard are thrown clear and killed (credited to whoever destroyed it). Creative and spectator players are spared. With `false` they are only thrown clear and take the wreck's blast like anyone nearby. |
+
+### `ntm`
+
+These rules only apply when NTM (HBM's Nuclear Tech Mod) is installed, and only to tanks (the `tanks` configs,
+which include the wheeled AFVs and cars). Explosions from other mods and vanilla are not affected.
+
+| Field | Default | Meaning |
+|---|---|---|
+| `nuclearDestroysTanks` | true | A tank caught in any NTM nuclear blast (every nuke, mini-nukes, balefire, N2…) is destroyed. |
+| `destroyTanksAtExplosionSize` | 6.0 | A tank caught in any other NTM explosion at least this big is destroyed: missiles, artillery, torpedoes, charges, the Fat and naval mines. Smaller ones (gun rounds, grenades, anti-personnel mines) do normal damage. NTM's TNT, C4, semtex and dynamite always do normal damage. NTM's EMPs do no damage at all. 0 = every NTM explosion destroys a tank. |
+| `antiTankMineDamage` | 50.0 | Damage an anti-tank mine (`hbm:mine_he`) does to a tank, past its armour. |
+
+NTM mines are only set off by living things, so an empty tank drives over them; a crewed one sets them off
+through its crew.
 
 ## Examples
 
