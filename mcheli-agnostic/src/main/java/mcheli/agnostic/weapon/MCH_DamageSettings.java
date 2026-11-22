@@ -46,6 +46,8 @@ public class MCH_DamageSettings {
    public Map<String, WeaponOverride> weapons = new LinkedHashMap<>();
    /** Rules for TaCZ guns hitting MCHeli vehicles (only used when TaCZ is installed). */
    public Tacz tacz = new Tacz();
+   /** What happens to the players riding a vehicle. */
+   public Crew crew = new Crew();
 
    public static class Multipliers {
       public Float directDamage;
@@ -77,6 +79,13 @@ public class MCH_DamageSettings {
       public float armoredMinDamage = 5.0F;
    }
 
+   public static class Crew {
+      /** Riders take no damage while their vehicle is intact (/kill and the void still apply). */
+      public boolean protectedWhileMounted = true;
+      /** Riders die when their vehicle is destroyed. */
+      public boolean diesWithVehicle = true;
+   }
+
    /** A settings object with every list filled in at its neutral value, which is what a fresh config file holds. */
    public static MCH_DamageSettings defaults() {
       MCH_DamageSettings s = new MCH_DamageSettings();
@@ -96,6 +105,7 @@ public class MCH_DamageSettings {
       if (this.vsTarget == null) this.vsTarget = new LinkedHashMap<>();
       if (this.weapons == null) this.weapons = new LinkedHashMap<>();
       if (this.tacz == null) this.tacz = new Tacz();
+      if (this.crew == null) this.crew = new Crew();
       this.directDamage = nonNegative(this.directDamage, "directDamage", w);
       this.explosionDamage = nonNegative(this.explosionDamage, "explosionDamage", w);
       for (String k : this.vsTarget.keySet()) {

@@ -66,6 +66,7 @@ public class MCHeli implements ModInitializer {
         // Server damage tuning (config/mcheli-damage.json) on top of the weapon configs just parsed.
         mcheli.dependent.MchDamageConfig.load();
         mcheli.dependent.MchDamageConfig.registerCommand();
+        mcheli.dependent.MchCrewProtection.register();
         MCH_WeaponInfo m230 = MCH_WeaponInfoManager.get("m230");
         if (m230 != null) {
             LOGGER.info("MCHeli weapon check: m230 -> type={} power={} reloadTime={}",

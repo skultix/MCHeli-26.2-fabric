@@ -64,7 +64,8 @@ weapon, so it is not in this file (see [What this file does not cover](#what-thi
   "weapons": {
     "m230": { "power": 12, "damageFactor": { "player": 0.5 } }
   },
-  "tacz": { "smallArmsFactor": 0.5, "smallArmsVsArmoredFactor": 0.0, "armoredMinDamage": 5.0 }
+  "tacz": { "smallArmsFactor": 0.5, "smallArmsVsArmoredFactor": 0.0, "armoredMinDamage": 5.0 },
+  "crew": { "protectedWhileMounted": true, "diesWithVehicle": true }
 }
 ```
 
@@ -139,6 +140,15 @@ designed damage and is not affected by these.
 | `smallArmsFactor` | 0.5 | Plain TaCZ bullets against unarmoured vehicles do this fraction of their damage. |
 | `smallArmsVsArmoredFactor` | 0.0 | The same against armoured vehicles. 0 = immune. |
 | `armoredMinDamage` | 5.0 | A vehicle counts as armoured when its config `ArmorMinDamage` is at least this. With 5, that is the real tanks (M1A2, T-90, Merkava, KV-2, …), but not the Growler, BNR32 or MXT-MV. |
+
+### `crew`
+
+What happens to players riding an MCHeli vehicle.
+
+| Field | Default | Meaning |
+|---|---|---|
+| `protectedWhileMounted` | true | Riders take no damage of any kind while their vehicle is intact, so the vehicle's HP is the crew's HP. `/kill` and the void still apply. |
+| `diesWithVehicle` | true | When the vehicle is destroyed, the players aboard are thrown clear and killed (credited to whoever destroyed it). Creative and spectator players are spared. With `false` they are only thrown clear and take the wreck's blast like anyone nearby. |
 
 ## Examples
 

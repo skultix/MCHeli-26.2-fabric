@@ -103,14 +103,14 @@ public final class MchKeybinds {
         // ticks — a second press would re-evaluate branch 1/3 on the old state and cancel the toggle).
         if (gunnerToggle && pilot && gunnerToggleCooldown == 0) {
             if (v.isSeatGunnerMode(0) && v.canSwitchCameraPos()) {
-                net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(new ServerboundGunnerModePayload(v.getId())); // leave gunner mode
+                mcheli.dependent.client.MchClientNet.send(new ServerboundGunnerModePayload(v.getId())); // leave gunner mode
                 v.setViewCameraId(1);
                 gunnerToggleCooldown = 5;
             } else if (v.getViewCameraId() > 0) {
                 int next = v.getViewCameraId() + 1;
                 v.setViewCameraId(next >= v.cameraPosCount() ? 0 : next);
             } else if (v.canSwitchGunnerMode()) {
-                net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(new ServerboundGunnerModePayload(v.getId())); // enter gunner mode
+                mcheli.dependent.client.MchClientNet.send(new ServerboundGunnerModePayload(v.getId())); // enter gunner mode
                 v.setViewCameraId(0);
                 gunnerToggleCooldown = 5;
             } else if (v.canSwitchCameraPos()) {
@@ -127,7 +127,7 @@ public final class MchKeybinds {
         // Client pre-gate uses the SYNCED dispenser state (flareDispenserIdle) — canDeployFlare() reads the server-only
         // flareInfo and would always read idle on the client — to avoid spamming during cooldown; server re-checks.
         if (flare && seat >= 0 && seat <= 1 && v.haveFlare() && v.flareDispenserIdle()) {
-            net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(new ServerboundUseFlarePayload(v.getId()));
+            mcheli.dependent.client.MchClientNet.send(new ServerboundUseFlarePayload(v.getId()));
         }
 
         // Reference commonPlayerControl:66-93. FreeLook held turns the seat keys into "leave your seat":
@@ -143,7 +143,7 @@ public final class MchKeybinds {
         // or unfolds the rotor (reference KeyExtra) while parked — the server re-checks canSwitchFoldBlades.
         if (gui) {
             if (pilot) {
-                net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(ServerboundVehicleGuiPayload.open(v.getId()));
+                mcheli.dependent.client.MchClientNet.send(ServerboundVehicleGuiPayload.open(v.getId()));
             } else {
                 send(v, ServerboundSeatSwitchPayload.NEXT);
             }
@@ -151,10 +151,10 @@ public final class MchKeybinds {
             if (!pilot) {
                 send(v, ServerboundSeatSwitchPayload.PREV);
             } else if (v instanceof MchHelicopter h && h.canSwitchFoldBlades()) {
-                net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(new ServerboundFoldBladePayload(v.getId()));
+                mcheli.dependent.client.MchClientNet.send(new ServerboundFoldBladePayload(v.getId()));
             } else if (v instanceof mcheli.dependent.entity.MchPlane p && p.canSwitchVtol()) {
                 // Reference shares KeyExtra between heli rotor-fold and plane VTOL — the pilot toggles the nozzle.
-                net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(new mcheli.dependent.control.ServerboundVtolPayload(v.getId()));
+                mcheli.dependent.client.MchClientNet.send(new mcheli.dependent.control.ServerboundVtolPayload(v.getId()));
             }
         }
     }
@@ -168,6 +168,6 @@ public final class MchKeybinds {
     }
 
     private static void send(AbstractMchVehicle v, int action) {
-        net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(new ServerboundSeatSwitchPayload(v.getId(), action));
+        mcheli.dependent.client.MchClientNet.send(new ServerboundSeatSwitchPayload(v.getId(), action));
     }
 }

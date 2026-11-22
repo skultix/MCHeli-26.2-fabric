@@ -213,8 +213,14 @@ public final class MchClientRotation {
     // delta baseline; the Mixin overrides what the camera actually shows.
     public static void onClientTick(net.minecraft.client.Minecraft client) {
         // Ship the client-authoritative rotation to the server at tick rate (physics reads it; syncs to others).
-        if (owned != null && !owned.isRemoved()) {
-            net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(
+        // Ownership is refreshed per render frame, which stops while a world is left or the player is dead, so check it
+        // here too: only the living local player still riding the owned vehicle may steer it.
+        if (owned != null && (owned.isRemoved() || client.player == null || client.player.isDeadOrDying()
+                              || client.player.getVehicle() != owned || owned.level() != client.level)) {
+            reset();
+        }
+        if (owned != null) {
+            mcheli.dependent.client.MchClientNet.send(
                 new ServerboundRotationPayload(owned.getId(), owned.getYRot(), owned.getXRot(), owned.getRollAngle()));
         }
     }

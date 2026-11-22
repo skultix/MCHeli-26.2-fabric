@@ -49,7 +49,7 @@ public final class MchClientInput {
         // it for "next weapon". Only fires on the rising edge and only while actively controlling.
         boolean switchDown = armed && mc.options.keySwapOffhand.isDown();
         if (switchDown && !switchKeyWasDown && vehicle != null) {
-            net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(new ServerboundWeaponSwitchPayload(vehicle.getId(), 1));
+            mcheli.dependent.client.MchClientNet.send(new ServerboundWeaponSwitchPayload(vehicle.getId(), 1));
         }
         switchKeyWasDown = switchDown;
 
@@ -63,7 +63,7 @@ public final class MchClientInput {
             // that same check — harmless; there the entity's clearMomentary() is the authoritative reset.)
             if (lastVehicleId != -1) {
                 if (mc.player != null) {
-                    net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(new ServerboundControlPayload(lastVehicleId, 0, -1));
+                    mcheli.dependent.client.MchClientNet.send(new ServerboundControlPayload(lastVehicleId, 0, -1));
                 }
                 lastVehicleId = -1;
                 lastBits = -1;
@@ -113,7 +113,7 @@ public final class MchClientInput {
             int warnId = MchLockTracker.warningTargetId();
             if (warnId >= 0) {
                 if (notifyLockTick++ % 15 == 0) {
-                    net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(new mcheli.dependent.control.ServerboundNotifyLockPayload(warnId));
+                    mcheli.dependent.client.MchClientNet.send(new mcheli.dependent.control.ServerboundNotifyLockPayload(warnId));
                 }
             } else {
                 notifyLockTick = 0;
@@ -124,7 +124,7 @@ public final class MchClientInput {
         keepalive++;
         // Send on change (bits, target vehicle, or lock target), plus a ~5-second keepalive to recover a missed packet.
         if (bits != lastBits || vid != lastVehicleId || lockTargetId != lastLockTargetId || keepalive % 100 == 0) {
-            net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(new ServerboundControlPayload(vid, bits, lockTargetId));
+            mcheli.dependent.client.MchClientNet.send(new ServerboundControlPayload(vid, bits, lockTargetId));
             lastBits = bits;
             lastVehicleId = vid;
             lastLockTargetId = lockTargetId;

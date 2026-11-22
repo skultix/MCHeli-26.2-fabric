@@ -83,7 +83,7 @@ public class MchVehicleScreen extends AbstractContainerScreen<MchVehicleMenu> {
 
     private void sendReload() {
         if (this.vehicle != null && canReload()) {
-            net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(
+            mcheli.dependent.client.MchClientNet.send(
                 ServerboundVehicleGuiPayload.reload(this.vehicle.getId(), this.shownWeapon));
             this.reload.active = false; // the server's answer arrives as synced ammo; re-enabled by the tick below
         }

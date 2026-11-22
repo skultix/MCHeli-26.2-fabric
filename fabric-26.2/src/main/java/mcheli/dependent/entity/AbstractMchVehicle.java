@@ -2944,8 +2944,11 @@ public abstract class AbstractMchVehicle extends Entity implements MchControllab
         this.despawnCount = 500;
         this.wreckThrottle = getEnginePower(); // capture before ejection spools the engine down
         seedWreckTumble();
+        // Eject first, then kill: a player who dies still seated leaves a dead rider for the client to untangle.
+        java.util.List<Player> crew = mcheli.dependent.MchCrewProtection.crewOf(this);
         ejectPassengers();
         if (this.level() instanceof ServerLevel sl) {
+            mcheli.dependent.MchCrewProtection.killCrew(sl, this, crew, killer);
             if (terrainKill) {
                 explosionByCrash(0.0);
                 this.damageSinceDestroyed = getMaxHp();
