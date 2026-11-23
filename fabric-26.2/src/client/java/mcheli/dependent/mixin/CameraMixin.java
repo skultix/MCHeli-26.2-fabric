@@ -14,7 +14,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 
 /**
  * Parents the camera to an MCHeli vehicle — the 1.21.1 port of the reference camera rig ({@code MCH_Camera} +
@@ -72,9 +72,13 @@ public abstract class CameraMixin {
         LEFT.rotate(this.rotation, this.left);
     }
 
-    @Inject(method = "calculateFov", at = @At("RETURN"), cancellable = true)
-    private void mcheli$gunnerZoom(float partialTick, CallbackInfoReturnable<Float> cir) {
-        cir.setReturnValue(mcheli.dependent.client.MchGunnerView.onComputeFov(cir.getReturnValueF()));
+    /**
+     * The gunner zoom narrows whatever FOV the game (and other mods) computed. A modifier, not a cancellable inject: a
+     * cancelling RETURN inject ends the method there, skipping every other mod's FOV hook on it (TaCZ's scope zoom).
+     */
+    @ModifyReturnValue(method = "calculateFov", at = @At("RETURN"))
+    private float mcheli$gunnerZoom(float fov) {
+        return mcheli.dependent.client.MchGunnerView.onComputeFov(fov);
     }
 
     @Inject(method = "alignWithEntity", at = @At("TAIL"))

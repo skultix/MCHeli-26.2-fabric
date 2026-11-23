@@ -91,7 +91,7 @@ MCHeli bullets, vanilla projectiles (`ProjectileUtilMixin`) and TaCZ bullets (`T
 
 **Crew.** Players riding an intact vehicle take no damage and die when it is destroyed (`MchCrewProtection`, `crew` in the damage config). Tank main-gun rounds on one mount share a reload (`VehicleWeapons.shareMainGunCooldown`). Client test runs: use a hidden Xvfb display; see `MchRiderGameTest` for dedicated-server testing.
 
-To test against real TaCZ in dev, put the TaCZ, ForgeConfigAPIPort and PlayerAnimationLib jars in `fabric-26.2/compat-mods/` (gitignored, loaded via `localRuntime`). `MchTaczGameTest` then fires real RPG-7 and AWP rounds; it proves each round fired and passed through its target, and checks the damage (RPG-7 vs m1a2 121; AWP vs m1a2 0, vs ah-64 and growler about 20). Without the jars it skips.
+To test against real TaCZ in dev, put the TaCZ, ForgeConfigAPIPort and PlayerAnimationLib jars in `fabric-26.2/compat-mods/` (gitignored, loaded via `localRuntime`). `MchTaczGameTest` then fires real RPG-7 and AWP rounds; it proves each round fired and passed through its target, and checks the damage (RPG-7 vs m1a2 121; AWP vs m1a2 0, vs ah-64 and growler about 20). Without the jars it skips. `MchTaczScopeGameTest` aims a real AWP (TaCZ's aim key) and checks the scope zoom plus MCHeli's gunner zoom; hooks on `Camera.calculateFov` must chain (`@ModifyReturnValue`), never cancel, or other mods' FOV hooks are skipped depending on mixin order.
 
 ## Commits
 

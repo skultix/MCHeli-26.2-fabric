@@ -229,7 +229,7 @@ public class MchTaczGameTest implements FabricClientGameTest {
         return damage;
     }
 
-    private static ItemStack buildGun(net.minecraft.server.MinecraftServer server, String id) {
+    static ItemStack buildGun(net.minecraft.server.MinecraftServer server, String id) {
         try {
             Class<?> builder = Class.forName("com.tacz.guns.api.item.builder.GunItemBuilder");
             Object b = builder.getMethod("create").invoke(null);
