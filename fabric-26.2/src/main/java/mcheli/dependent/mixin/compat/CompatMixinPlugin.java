@@ -12,6 +12,9 @@ public final class CompatMixinPlugin implements IMixinConfigPlugin {
     @Override
     public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
         String simple = mixinClassName.substring(mixinClassName.lastIndexOf('.') + 1);
+        if (simple.startsWith("TaczNtm")) {
+            return FabricLoader.getInstance().isModLoaded("tacz") && FabricLoader.getInstance().isModLoaded("hbm");
+        }
         if (simple.startsWith("Tacz")) {
             return FabricLoader.getInstance().isModLoaded("tacz");
         }

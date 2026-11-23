@@ -8,6 +8,9 @@
     "TaczEntityUtilMixin",
     "NtmExplosionVNTMixin"
   ],
+  "client": [
+    "TaczNtmHudFovMixin"
+  ],
   "injectors": {
     "defaultRequire": 0
   }

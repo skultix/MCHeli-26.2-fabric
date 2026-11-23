@@ -53,14 +53,11 @@ public class MchTaczScopeGameTest implements FabricClientGameTest {
             scoped = false;
             LOG.info("[GAMETEST-SCOPE] on foot: world {} -> {}, gun model {} -> {}", foot[0], footScoped[0], foot[1], footScoped[1]);
             check(near(footScoped[0], foot[0] / 4), "a TaCZ scope must narrow the world FOV on foot");
-            // NTM also hooks the gun-model FOV, with a cancellable inject: when it lands before TaCZ's (mixin order varies),
-            // it ends the method and TaCZ's model zoom is skipped. That is between NTM and TaCZ, so only warn then.
-            boolean model = near(footScoped[1], foot[1] / 4) && realAim[3] < realAim[1] * 0.8F;
-            if (!model && FabricLoader.getInstance().isModLoaded("hbm")) {
-                LOG.warn("[GAMETEST-SCOPE] the gun model did not zoom: NTM's calculateHudFov hook ran first (NTM vs TaCZ)");
-            } else {
-                check(model, "a TaCZ scope must narrow the gun model FOV");
-            }
+            // With NTM, its cancellable gun-model FOV hook can skip TaCZ's (mixin order); TaczHudFov repairs that.
+            LOG.info("[GAMETEST-SCOPE] gun-model FOV repaired by MCHeli in {} frames (0 = TaCZ's own hook ran)",
+                (Object) ctx.computeOnClient(mc -> (Integer) mcheli.dependent.client.compat.TaczHudFov.repairs()));
+            check(near(footScoped[1], foot[1] / 4), "a TaCZ scope must narrow the gun model FOV on foot");
+            check(realAim[3] < realAim[1] * 0.8F, "aiming the AWP must zoom the gun model in");
 
             // MCHeli's own gunner zoom: the Ka-52's pilot in gunner mode, one zoom step (x2).
             AbstractMchVehicle[] v = {null};
