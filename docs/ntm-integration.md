@@ -38,23 +38,24 @@ their config's own items. The rules live in `mcheli.agnostic.weapon.MCH_AmmoClas
 
 ### Making ammunition
 
-Calibre rounds are made in NTM's **ammo press**. Their cost scales with the size of the round: about calibre^2.5,
-close to real cartridge weights, set so one 125 mm shell costs 5 steel, 4 TATB, 2 cordite and a large gunmetal
-casing. Small rounds come several belts to a press. Some examples:
+Calibre rounds are made in NTM's **ammo press**. Their cost is linear in calibre: each item (a belt or a shell) takes
+1 steel ingot, 1 TATB and 2 cordite for every 10 mm, plus one casing per press. Plain machine-gun bullets (under
+20 mm) have no explosive filling, and mortar bombs have no casing. Items that need less than one steel come two to a
+press. The factors are `STEEL_PER_10MM`, `TATB_PER_10MM` and `CORDITE_PER_10MM` in `MCH_AmmoCaliber`. Some examples:
 
 | Output | Inputs |
 |---|---|
-| 16 × 7.62mm Rounds (400 rounds) | 2 steel ingots, 1 cordite, 1 small gunmetal casing |
-| 4 × 12.7mm Rounds (100 rounds) | 2 steel ingots, 1 cordite, 1 small gunmetal casing |
-| 1 × 20mm Rounds | 1 steel ingot, 1 TATB, 1 cordite, 1 large gunmetal casing |
-| 1 × 30mm Rounds | 4 steel ingots, 3 TATB, 1 cordite, 1 large gunmetal casing |
-| 1 × 40mm Rounds | 7 steel ingots, 6 TATB, 3 cordite, 1 large gunmetal casing |
-| 1 × 40mm Grenades | 2 steel ingots, 1 TATB, 1 cordite, 1 small gunmetal casing |
-| 1 × 81mm Mortar Bomb | 1 steel ingot, 1 TATB, 1 cordite |
-| 1 × 105mm Shell | 3 steel ingots, 3 TATB, 1 cordite, 1 large gunmetal casing |
-| 1 × 125mm Shell | 5 steel ingots, 4 TATB, 2 cordite, 1 large gunmetal casing |
-| 1 × 155mm Shell | 9 steel ingots, 7 TATB, 3 cordite, 1 large weapon steel casing |
-| 1 × 460mm Shell | 130 steel ingots, 104 TATB, 52 cordite, 1 large weapon steel casing |
+| 2 × 7.62mm Rounds (50 rounds) | 2 steel ingots, 3 cordite, 1 small gunmetal casing |
+| 1 × 12.7mm Rounds | 1 steel ingot, 3 cordite, 1 small gunmetal casing |
+| 1 × 20mm Rounds | 2 steel ingots, 2 TATB, 4 cordite, 1 large gunmetal casing |
+| 1 × 30mm Rounds | 3 steel ingots, 3 TATB, 6 cordite, 1 large gunmetal casing |
+| 1 × 40mm Rounds | 4 steel ingots, 4 TATB, 8 cordite, 1 large gunmetal casing |
+| 1 × 40mm Grenades | 4 steel ingots, 4 TATB, 8 cordite, 1 small gunmetal casing |
+| 1 × 81mm Mortar Bomb | 8 steel ingots, 8 TATB, 16 cordite |
+| 1 × 105mm Shell | 11 steel ingots, 11 TATB, 21 cordite, 1 large gunmetal casing |
+| 1 × 125mm Shell | 13 steel ingots, 13 TATB, 25 cordite, 1 large gunmetal casing |
+| 1 × 155mm Shell | 16 steel ingots, 16 TATB, 31 cordite, 1 large weapon steel casing |
+| 1 × 460mm Shell | 46 steel ingots, 46 TATB, 92 cordite, 1 large weapon steel casing |
 
 The shared items:
 
@@ -66,7 +67,7 @@ The shared items:
 | 1 Torpedo | 6 steel ingots, 3 aluminium ingots, 6 TATB, 1 motor |
 
 Without NTM, every ammo item has a crafting-table recipe instead: the same recipe in vanilla materials (iron for steel,
-TNT for TATB, gunpowder for cordite, a copper ingot for a casing), trimmed to fit the grid for the biggest shells.
+TNT for TATB, gunpowder for cordite, a copper ingot for a casing), trimmed to fit the 3×3 grid. From about 105 mm up, the trimmed recipes all come out the same.
 
 ## Vehicles
 

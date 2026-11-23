@@ -79,11 +79,11 @@ class AmmoCaliberTest {
 
    @Test
    void costScalesWithRoundSize() throws IOException {
-      // The reference: one 125 mm round is the old tank shell recipe.
-      assertEquals("[Ingredient[id=#c:ingots/steel, count=5], Ingredient[id=hbm:ball_tatb, count=4], "
-         + "Ingredient[id=hbm:cordite, count=2], Ingredient[id=hbm:casing_large, count=1]]",
-         round(125.0F).pressCost().inputs().toString());
-      assertEquals(1, round(125.0F).pressCost().output());
+      // One steel and one TATB per 10 mm, two cordite: a 120 mm shell is 12, 12 and 24.
+      assertEquals("[Ingredient[id=#c:ingots/steel, count=12], Ingredient[id=hbm:ball_tatb, count=12], "
+         + "Ingredient[id=hbm:cordite, count=24], Ingredient[id=hbm:casing_large, count=1]]",
+         round(120.0F).pressCost().inputs().toString());
+      assertEquals(1, round(120.0F).pressCost().output());
       // Bigger rounds never cost less per round (the 7.7/7.92 pair is within rounding).
       List<MCH_AmmoCaliber> rounds = new ArrayList<>();
       for (MCH_AmmoCaliber c : MCH_AmmoClass.calibers(AmmoClassTest.bundled().values())) {
@@ -95,9 +95,9 @@ class AmmoCaliberTest {
          assertTrue(steelPerRound(rounds.get(i)) >= steelPerRound(rounds.get(i - 1)),
             rounds.get(i).label() + " is cheaper per round than " + rounds.get(i - 1).label());
       }
-      assertTrue(steelPerRound(round(460.0F)) > 20 * steelPerRound(round(125.0F)) / 2);
+      assertEquals(46.0, steelPerRound(round(460.0F)));
       // Small rounds come many to a press.
-      assertTrue(round(7.62F).pressCost().output() >= 8);
+      assertEquals(2, round(7.62F).pressCost().output());
    }
 
    @Test

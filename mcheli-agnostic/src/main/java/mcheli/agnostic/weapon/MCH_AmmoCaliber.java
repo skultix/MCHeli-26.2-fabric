@@ -9,9 +9,8 @@ import java.util.Map;
  * The ammunition of one gun calibre: every gun reloads from the rounds of its own calibre ("20mm Rounds", "105mm
  * Shell"). Calibres up to {@link #MAX_BELT_MM} come as belts of {@link #BELT} rounds, so machine guns and autocannons do
  * not need thousands of items; bigger rounds are one per item. 40 mm grenades and mortar bombs are their own items,
- * apart from a 40 mm cannon round. The cost of an item scales with the mass of what it holds: calibre to the power
- * {@link #MASS_EXPONENT} (close to real cartridge weights: 7.62 mm 25 g, 30 mm 0.7 kg, 125 mm 20 kg) times rounds,
- * set so a 125 mm tank round costs what the original tank shell recipe did.
+ * apart from a 40 mm cannon round. An item costs steel, explosive and propellant in proportion to its calibre
+ * ({@link #pressCost()}).
  *
  * @param mm calibre in millimetres
  * @param kind cannon/gun round, grenade or mortar bomb
@@ -23,10 +22,12 @@ public record MCH_AmmoCaliber(float mm, Kind kind) implements Comparable<MCH_Amm
    public static final int BELT = 25;
    /** The largest belted calibre: machine guns, autocannons and grenade launchers. */
    public static final float MAX_BELT_MM = 40.0F;
-   /** The reference round for costs: a 125 mm tank round costs 5 steel, 4 TATB, a large casing (the tank shell recipe). */
-   private static final float REFERENCE_MM = 125.0F;
-   /** Round mass grows about as calibre^2.5 (big rounds are longer but thinner-walled, so less than the cube). */
-   static final double MASS_EXPONENT = 2.5;
+   /** Steel per item for each 10 mm of calibre. */
+   public static final double STEEL_PER_10MM = 1.0;
+   /** TATB (explosive filling) per item for each 10 mm of calibre; plain machine-gun bullets have none. */
+   public static final double TATB_PER_10MM = 1.0;
+   /** Cordite (propellant) per item for each 10 mm of calibre. */
+   public static final double CORDITE_PER_10MM = 2.0;
 
    /**
     * Bundled guns whose names carry no calibre ("M61A1 Vulcan", "GAU-8 Avenger", "Rehinmetall Smoothbore Gun").
@@ -150,17 +151,6 @@ public record MCH_AmmoCaliber(float mm, Kind kind) implements Comparable<MCH_Amm
       return this.mm < MCH_AmmoClass.MIN_ARTILLERY_MM ? "ammo_tank_shell" : "ammo_artillery_shell";
    }
 
-   /** Relative mass of what one item holds (a 125 mm tank round = 1). */
-   double mass() {
-      double per = Math.pow(this.mm / REFERENCE_MM, MASS_EXPONENT);
-      double scale = switch (this.kind) {
-         case GRENADE -> 0.25; // a low-velocity 40 mm grenade (~340 g) is far lighter than a 40 mm cannon round
-         case MORTAR -> 0.7;   // a thin-walled bomb with no casing
-         case ROUND -> 1.0;
-      };
-      return per * scale * roundsPerItem();
-   }
-
    /** One ingredient of a recipe: an item id or {@code #tag}, and how many. */
    public record Ingredient(String id, int count) {}
 
@@ -179,20 +169,16 @@ public record MCH_AmmoCaliber(float mm, Kind kind) implements Comparable<MCH_Amm
    public static final int STACK = 64;
 
    /**
-    * The NTM ammo press recipe, scaled by {@link #mass()}: steel 5, TATB 4 and cordite 2 per tank-round mass (grenades
-    * and mortars less propellant, machine-gun bullets no explosive), plus one casing per press for cased rounds. Light
-    * items come several to a press, so the smallest ingredient is still a whole item.
+    * The NTM ammo press recipe, linear in calibre: per item (a belt or a shell), {@link #STEEL_PER_10MM} steel,
+    * {@link #TATB_PER_10MM} TATB and {@link #CORDITE_PER_10MM} cordite for each 10 mm, plus one casing per press for
+    * cased rounds. Items needing under one steel come several to a press, so every ingredient is a whole item.
     */
    public Cost pressCost() {
-      double m = mass();
+      double tens = this.mm / 10.0;
       boolean explosive = this.kind != Kind.ROUND || this.mm >= 20.0F;
-      double steel = 5.0 * m;
-      double tatb = explosive ? 4.0 * m : 0.0;
-      double cordite = switch (this.kind) {
-         case GRENADE -> 0.5 * m;
-         case MORTAR -> 1.0 * m;
-         case ROUND -> 2.0 * m;
-      };
+      double steel = STEEL_PER_10MM * tens;
+      double tatb = explosive ? TATB_PER_10MM * tens : 0.0;
+      double cordite = CORDITE_PER_10MM * tens;
       int out = 1;
       while (out < STACK && steel * out < 1.0) {
          out *= 2;
