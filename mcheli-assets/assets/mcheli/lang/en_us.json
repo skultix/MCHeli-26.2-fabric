@@ -32,5 +32,21 @@
   "key.mcheli.gunner_mode": "Toggle Gunner Mode",
   "key.mcheli.zoom": "Gunner Zoom",
   "key.mcheli.free_look_toggle": "Free Look (toggle)",
-  "key.mcheli.flare": "Dispense Flares"
+  "key.mcheli.flare": "Dispense Flares",
+  "item.mcheli.ammo_autocannon": "Autocannon Rounds",
+  "item.mcheli.ammo_grenade": "40mm Grenade",
+  "item.mcheli.ammo_artillery_shell": "Artillery Shell",
+  "item.mcheli.ammo_mortar": "Mortar Bomb",
+  "item.mcheli.ammo_rocket": "Rocket",
+  "item.mcheli.ammo_torpedo": "Torpedo",
+  "item.mcheli.ammo_bullet.desc": "A belt of 25 rounds for vehicle guns up to 12.7 mm",
+  "item.mcheli.ammo_autocannon.desc": "A belt of 20 rounds for 20-40 mm cannons",
+  "item.mcheli.ammo_grenade.desc": "One grenade for 40 mm grenade launchers",
+  "item.mcheli.ammo_tank_shell.desc": "One round for a tank gun",
+  "item.mcheli.ammo_artillery_shell.desc": "One round for a howitzer or naval gun",
+  "item.mcheli.ammo_mortar.desc": "One round for a mortar",
+  "item.mcheli.ammo_missile.desc": "One guided missile or guided bomb",
+  "item.mcheli.ammo_rocket.desc": "One unguided rocket",
+  "item.mcheli.ammo_bomb.desc": "One unguided bomb",
+  "item.mcheli.ammo_torpedo.desc": "One torpedo"
 }

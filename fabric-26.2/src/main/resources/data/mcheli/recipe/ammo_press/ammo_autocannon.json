@@ -1,0 +1,36 @@
+{
+  "fabric:load_conditions": [
+    {
+      "condition": "fabric:all_mods_loaded",
+      "values": [
+        "hbm"
+      ]
+    }
+  ],
+  "type": "hbm:ammo_press",
+  "key": {
+    "A": {
+      "count": 3,
+      "ingredient": "#c:ingots/steel"
+    },
+    "B": {
+      "count": 2,
+      "ingredient": "hbm:cordite"
+    },
+    "C": {
+      "ingredient": "hbm:casing_large"
+    }
+  },
+  "order": 2000005,
+  "output_items": [
+    {
+      "count": 1,
+      "id": "mcheli:ammo_autocannon"
+    }
+  ],
+  "pattern": [
+    " A ",
+    " B ",
+    " C "
+  ]
+}

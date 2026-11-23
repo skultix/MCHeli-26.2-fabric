@@ -171,11 +171,19 @@ public final class MchRegistries {
     public static final MchHolder<mcheli.dependent.item.MchContainerItem> CONTAINER_ITEM =
         item("container", mcheli.dependent.item.MchContainerItem::new, new Item.Properties());
 
-    /** The four basic vehicle ammo items a weapon is reloaded with ({@link mcheli.agnostic.weapon.MCH_AmmoClass}). */
+    /** The vehicle ammo items, one per kind of ammunition ({@link mcheli.agnostic.weapon.MCH_AmmoClass}). */
     public static final MchHolder<Item> AMMO_BULLET = item("ammo_bullet", Item::new, new Item.Properties());
+    public static final MchHolder<Item> AMMO_AUTOCANNON = item("ammo_autocannon", Item::new, new Item.Properties());
+    public static final MchHolder<Item> AMMO_GRENADE = item("ammo_grenade", Item::new, new Item.Properties());
     public static final MchHolder<Item> AMMO_TANK_SHELL = item("ammo_tank_shell", Item::new, new Item.Properties().stacksTo(16));
+    public static final MchHolder<Item> AMMO_ARTILLERY_SHELL = item("ammo_artillery_shell", Item::new, new Item.Properties().stacksTo(16));
+    public static final MchHolder<Item> AMMO_MORTAR = item("ammo_mortar", Item::new, new Item.Properties().stacksTo(16));
     public static final MchHolder<Item> AMMO_MISSILE = item("ammo_missile", Item::new, new Item.Properties().stacksTo(16));
+    public static final MchHolder<Item> AMMO_ROCKET = item("ammo_rocket", Item::new, new Item.Properties().stacksTo(16));
     public static final MchHolder<Item> AMMO_BOMB = item("ammo_bomb", Item::new, new Item.Properties().stacksTo(16));
+    public static final MchHolder<Item> AMMO_TORPEDO = item("ammo_torpedo", Item::new, new Item.Properties().stacksTo(4));
+    public static final List<MchHolder<Item>> AMMO = List.of(AMMO_BULLET, AMMO_AUTOCANNON, AMMO_GRENADE, AMMO_TANK_SHELL,
+        AMMO_ARTILLERY_SHELL, AMMO_MORTAR, AMMO_MISSILE, AMMO_ROCKET, AMMO_BOMB, AMMO_TORPEDO);
 
     /** Refill a used fuel can by crafting it with coal (reference {@code MCH_RecipeFuel}). */
     public static final MchHolder<net.minecraft.world.item.crafting.RecipeSerializer<mcheli.dependent.item.MchFuelRefillRecipe>> FUEL_REFILL =
@@ -293,10 +301,9 @@ public final class MchRegistries {
                 output.accept(new ItemStack(FUEL.get()));        // every category burns fuel, so every tab offers the can
                 output.accept(new ItemStack(WRENCH.get()));      // ...and every vehicle can be mended with the wrench
                 output.accept(new ItemStack(CONTAINER_ITEM.get())); // ...and the cargo box rides with any of them
-                output.accept(new ItemStack(AMMO_BULLET.get()));    // ...and is reloaded with the basic ammo items
-                output.accept(new ItemStack(AMMO_TANK_SHELL.get()));
-                output.accept(new ItemStack(AMMO_MISSILE.get()));
-                output.accept(new ItemStack(AMMO_BOMB.get()));
+                for (MchHolder<Item> ammo : AMMO) {                 // ...and is reloaded with the ammo items
+                    output.accept(new ItemStack(ammo.get()));
+                }
             })
             .build());
     }

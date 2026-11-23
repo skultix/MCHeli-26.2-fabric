@@ -113,7 +113,18 @@ public final class WeaponSlot {
         }
     }
 
-    /** Pull rounds from the reserve into the magazine (reference {@code reloadMag}, {@code MCH_WeaponSet:144-155}). */
+    /** Add exactly {@code n} rounds to the reserve, up to {@code maxAmmo} counting the magazine; returns how many fit.
+    *  The per-round reload (one basic ammo item per round or belt), unlike the reference's whole-supply pulse. */
+   public int supplyRounds(int n) {
+      if (!this.economy || n <= 0) {
+         return 0;
+      }
+      int before = this.restAllAmmo;
+      setRestAllAmmo(this.restAllAmmo + n);
+      return this.restAllAmmo - before;
+   }
+
+   /** Pull rounds from the reserve into the magazine (reference {@code reloadMag}, {@code MCH_WeaponSet:144-155}). */
     public void reloadMag() {
         if (!this.economy || this.infiniteMagazine) {
             return;

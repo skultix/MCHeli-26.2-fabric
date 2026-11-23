@@ -12,7 +12,8 @@
       "mcheli.gametest.MchHitboxGameTest",
       "mcheli.gametest.MchDamageConfigGameTest",
       "mcheli.gametest.MchNtmGameTest",
-      "mcheli.gametest.MchTaczScopeGameTest"
+      "mcheli.gametest.MchTaczScopeGameTest",
+      "mcheli.gametest.MchReloadGameTest"
     ]
   },
   "depends": {

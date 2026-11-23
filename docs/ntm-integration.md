@@ -5,30 +5,47 @@ are built with NTM's machines. Nothing needs configuring; MCHeli detects NTM at 
 
 ## Ammunition
 
-Every weapon reloads from one of four ammo items. One item buys one supply: the weapon's `SuppliedNum` rounds (the
-reload button in the vehicle menu, as before).
+Every weapon reloads only from its own ammunition, paid per round. The reload button in the vehicle menu fills the
+weapon to its maximum, or as far as your ammo goes. The number under the ammo icon is what a full reload costs: white
+when you have it, yellow when you have enough for part of it, red when you have none. Each item's tooltip says what it
+holds.
 
-| Item | Used by |
-|---|---|
-| Vehicle Bullets (`mcheli:ammo_bullet`) | Guns up to 12.7 mm |
-| Tank Shell (`mcheli:ammo_tank_shell`) | Guns larger than 12.7 mm (autocannons, tank guns, howitzers), and gun-fired shells, mortars and grenade launchers |
-| Guided Missile (`mcheli:ammo_missile`) | Guided ordnance: air-to-air, anti-tank, TV-guided and air-to-surface missiles, guided bombs |
-| Bomb (`mcheli:ammo_bomb`) | Unguided, non-gun ordnance: bombs, rockets, torpedoes (MCHeli's run straight) |
+| Item | Used by | Rounds per item |
+|---|---|---|
+| Vehicle Bullets (`mcheli:ammo_bullet`) | Machine guns up to 12.7 mm | a belt of 25 |
+| Autocannon Rounds (`mcheli:ammo_autocannon`) | 20–40 mm cannons: M61 Vulcan, GAU-8, M230, 2A42, Bofors… | a belt of 20 |
+| 40mm Grenade (`mcheli:ammo_grenade`) | Grenade launchers: Mk19, GMW, M75 | 1 |
+| Tank Shell (`mcheli:ammo_tank_shell`) | Tank guns | 1 |
+| Artillery Shell (`mcheli:ammo_artillery_shell`) | Howitzers, naval guns and their shells | 1 |
+| Mortar Bomb (`mcheli:ammo_mortar`) | Mortars | 1 |
+| Guided Missile (`mcheli:ammo_missile`) | Air-to-air, anti-tank, TV-guided and air-to-surface missiles, guided bombs | 1 |
+| Rocket (`mcheli:ammo_rocket`) | Unguided rockets | 1 |
+| Bomb (`mcheli:ammo_bomb`) | Unguided bombs | 1 |
+| Torpedo (`mcheli:ammo_torpedo`) | Torpedoes | 1 |
+
+So 8 rockets cost 8 Rockets, and 200 rounds for an M230 cost 10 belts of Autocannon Rounds. When only part of the
+last belt is needed, the whole belt is used.
 
 Dispensers, smoke, targeting pods and other weapons that fire no ammunition keep their config's own items. A weapon's
-class is worked out from its config (`mcheli.agnostic.weapon.MCH_AmmoClass`): its type, and for guns the calibre in its
-name, or its power when the name has none.
+ammunition is worked out from its config (`mcheli.agnostic.weapon.MCH_AmmoClass`): its type, its name, and for guns
+the calibre in its name, or its power and supply size when the name has none.
 
 The ammo is made in NTM's **ammo press**:
 
 | Output | Inputs |
 |---|---|
 | 4 Vehicle Bullets | 2 steel ingots, 1 cordite, 1 small gunmetal casing |
+| 1 Autocannon Rounds | 3 steel ingots, 2 cordite, 1 large gunmetal casing |
+| 4 40mm Grenades | 2 steel ingots, 1 TATB, 1 small gunmetal casing |
 | 1 Tank Shell | 5 steel ingots, 4 TATB, 1 large gunmetal casing |
+| 1 Artillery Shell | 6 steel ingots, 5 TATB, 2 cordite, 1 large weapon steel casing |
+| 2 Mortar Bombs | 3 steel ingots, 2 TATB, 1 cordite |
 | 1 Guided Missile | 4 steel ingots, 2 aluminium ingots, 1 printed circuit board, 4 TATB, 3 solid fuel |
+| 2 Rockets | 2 steel ingots, 1 aluminium ingot, 2 TATB, 2 solid fuel |
 | 1 Bomb | 4 steel ingots, 2 aluminium ingots, 4 TATB |
+| 1 Torpedo | 6 steel ingots, 3 aluminium ingots, 6 TATB, 1 motor |
 
-Without NTM, the four items have crafting-table recipes instead (`data/mcheli/recipe/ammo_fallback/`).
+Without NTM, the items have crafting-table recipes instead (`data/mcheli/recipe/ammo_fallback/`).
 
 ## Vehicles
 

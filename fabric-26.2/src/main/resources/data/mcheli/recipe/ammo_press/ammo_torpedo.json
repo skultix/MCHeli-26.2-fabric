@@ -1,0 +1,40 @@
+{
+  "fabric:load_conditions": [
+    {
+      "condition": "fabric:all_mods_loaded",
+      "values": [
+        "hbm"
+      ]
+    }
+  ],
+  "type": "hbm:ammo_press",
+  "key": {
+    "A": {
+      "count": 6,
+      "ingredient": "#c:ingots/steel"
+    },
+    "D": {
+      "count": 3,
+      "ingredient": "#c:ingots/aluminum"
+    },
+    "B": {
+      "count": 6,
+      "ingredient": "hbm:ball_tatb"
+    },
+    "E": {
+      "ingredient": "hbm:motor"
+    }
+  },
+  "order": 2000010,
+  "output_items": [
+    {
+      "count": 1,
+      "id": "mcheli:ammo_torpedo"
+    }
+  ],
+  "pattern": [
+    "DA ",
+    " B ",
+    " E "
+  ]
+}

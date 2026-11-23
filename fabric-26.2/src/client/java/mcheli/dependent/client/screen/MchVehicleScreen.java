@@ -115,6 +115,9 @@ public class MchVehicleScreen extends AbstractContainerScreen<MchVehicleMenu> {
         if (this.minecraft == null || this.minecraft.player == null) {
             return false;
         }
+        if (w.info.roundsPerAmmoItem > 0 && !w.info.roundItems.isEmpty()) {
+            return countHeld(w.info.roundItems.get(0)) > 0; // per-round ammo: any amount reloads part of the way
+        }
         for (MCH_WeaponInfo.RoundItem ri : w.info.roundItems) {
             if (countHeld(ri) < ri.num) {
                 return false;
@@ -221,8 +224,13 @@ public class MchVehicleScreen extends AbstractContainerScreen<MchVehicleMenu> {
             }
             int ix = 85 + 20 * i;
             g.item(new ItemStack(item), ix, 62);
-            boolean enough = countHeld(ri) >= ri.num;
-            g.text(this.font, Integer.toString(ri.num), ix + 5, 80, mcheli.dependent.client.hud.NeoHudRenderer.textColor(enough ? 0xFFFFFF : 0xFF0000), false);
+            // Per-round ammo shows what a full reload costs: white when held, yellow for a part reload, red for none.
+            int need = w.info.roundsPerAmmoItem > 0
+                ? mcheli.agnostic.weapon.MCH_AmmoClass.itemsFor(w.maxAmmo() - this.vehicle.ammoOf(this.shownWeapon), w.info.roundsPerAmmoItem)
+                : ri.num;
+            int held = countHeld(ri);
+            int color = held >= need ? 0xFFFFFF : (w.info.roundsPerAmmoItem > 0 && held > 0 ? 0xFFFF55 : 0xFF0000);
+            g.text(this.font, Integer.toString(need), ix + 5, 80, mcheli.dependent.client.hud.NeoHudRenderer.textColor(color), false);
             i++;
         }
     }

@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * MCHeli with NTM (HBM Nuclear Tech) installed: the ammo press and assembly machine recipes are loaded (and the
- * crafting-table ones are not), a weapon reloads from one basic ammo item, and NTM's explosions treat tanks as
+ * crafting-table ones are not), and NTM's explosions treat tanks as
  * configured: the anti-tank mine does 50, a nuke and a big NTM blast destroy the tank, a small NTM blast and any
  * non-NTM explosion do normal damage. Skips when NTM is not in compat-mods/.
  */
@@ -49,7 +49,6 @@ public class MchNtmGameTest implements FabricClientGameTest {
             sp.getConnection().waitForChunksRender();
             sp.getServer().runCommand("gamemode creative @a");
             sp.getServer().runOnServer(MchNtmGameTest::recipes);
-            reload(ctx, sp);
 
             int mine = explode(ctx, sp, "the anti-tank mine", (level, pos, tank) -> {
                 BlockPos at = pos.below();
@@ -83,8 +82,8 @@ public class MchNtmGameTest implements FabricClientGameTest {
 
     private static void recipes(MinecraftServer server) {
         var rm = server.getRecipeManager();
-        for (String id : List.of("ammo_press/ammo_bullet", "ammo_press/ammo_tank_shell", "ammo_press/ammo_missile",
-                                 "ammo_press/ammo_bomb")) {
+        for (var ammo : MchRegistries.AMMO) {
+            String id = "ammo_press/" + BuiltInRegistries.ITEM.getKey(ammo.get()).getPath();
             check(type(rm.byKey(key(id)).orElse(null)).equals("hbm:ammo_press"), id + " is not an ammo press recipe");
         }
         check(rm.byKey(key("ammo_fallback/ammo_bullet")).isEmpty(), "the crafting-table ammo recipe should be off with NTM");
@@ -105,27 +104,6 @@ public class MchNtmGameTest implements FabricClientGameTest {
         }
         LOG.info("[GAMETEST-NTM] {} of {} vehicle spawn items have an assembly machine recipe", assembly, vehicles);
         check(assembly == vehicles && vehicles >= 100, "every vehicle needs an assembly recipe");
-    }
-
-    /** A grounded T-90 rearms its HE round from exactly one tank shell. */
-    private static void reload(ClientGameTestContext ctx, TestSingleplayerContext sp) {
-        AbstractMchVehicle[] t = {null};
-        sp.getServer().runOnServer(s -> t[0] = spawn(s, "t-90"));
-        ctx.waitTicks(40);
-        sp.getServer().runOnServer(s -> {
-            ServerPlayer p = s.getPlayerList().getPlayers().get(0);
-            p.getInventory().clearContent();
-            p.getInventory().setItem(0, new ItemStack(MchRegistries.AMMO_TANK_SHELL.get(), 3));
-            boolean ok = t[0].supplyAmmoFromPlayer(p, 2); // t-90.txt: APFSDS, HEAT-MP, HE, ...
-            int left = p.getInventory().getItem(0).getCount();
-            LOG.info("[GAMETEST-NTM] T-90 HE reload: granted {}, tank shells left {} of 3", ok, left);
-            check(ok && left == 2, "the HE reload should cost exactly one tank shell");
-            p.getInventory().setItem(1, new ItemStack(net.minecraft.world.item.Items.IRON_INGOT, 64));
-            p.getInventory().setItem(2, new ItemStack(net.minecraft.world.item.Items.GUNPOWDER, 64));
-            p.getInventory().setItem(0, ItemStack.EMPTY);
-            check(!t[0].supplyAmmoFromPlayer(p, 0), "the old iron + gunpowder cost should no longer reload a cannon");
-            t[0].discard();
-        });
     }
 
     private interface Blast {

@@ -2095,8 +2095,9 @@ public abstract class AbstractMchVehicle extends Entity implements MchControllab
     /**
      * Rearm ONE weapon by index from the riding GUI — the port of {@code supplyAmmo} / {@code canPlayerSupplyAmmo}: the
      * vehicle must be grounded ({@link #canSupply()}) and the weapon must have a finite reserve that is not already
-     * full; the weapon's ammo item (one basic ammo item per supply, see {@code MCH_AmmoClass}; weapons that fire no
-     * ammunition keep their config's {@code Item = count, name}) is consumed from the player's main inventory first, regardless of game mode, as in the reference
+     * full. A weapon on the basic ammo items ({@code MCH_AmmoClass}) is paid per round, or per belt for guns, and filled to
+     * its maximum or as far as the player's ammo goes; any other weapon pays its config's {@code Item = count, name} for
+     * one supply. Items come from the player's main inventory in every game mode, as in the reference
      * ({@code canPlayerSupplyAmmo}/{@code supplyAmmo} have no creative bypass). A water/lava-bucket round hands back an
      * empty bucket. The index is the weapon the GUI is SHOWING, so it is bounds-checked here — a modified client
      * cannot address a weapon that does not exist. Returns true if a supply pulse was granted.
@@ -2113,6 +2114,23 @@ public abstract class AbstractMchVehicle extends Entity implements MchControllab
             return false;
         }
         java.util.List<mcheli.agnostic.weapon.MCH_WeaponInfo.RoundItem> cost = slot.info.roundItems;
+        int perItem = slot.info.roundsPerAmmoItem;
+        if (perItem > 0 && cost != null && !cost.isEmpty()) {
+            // Basic ammo items, paid per round (or per belt): fill the weapon up to its maximum, or as far as the
+            // player's ammo goes. The last belt may be part-used.
+            mcheli.agnostic.weapon.MCH_WeaponInfo.RoundItem ammo = cost.get(0);
+            int missing = slot.maxAmmo() - slot.totalAmmo();
+            int items = Math.min(mcheli.agnostic.weapon.MCH_AmmoClass.itemsFor(missing, perItem), countItem(player, ammo));
+            if (items <= 0) {
+                return false;
+            }
+            takeItem(player, ammo, items);
+            slot.supplyRounds(Math.min(missing, items * perItem));
+            if (slot.magazine() <= 0) {
+                slot.reloadMag();
+            }
+            return true;
+        }
         if (cost != null && !cost.isEmpty()) {
             for (mcheli.agnostic.weapon.MCH_WeaponInfo.RoundItem ri : cost) {
                 if (countItem(player, ri) < ri.num) {

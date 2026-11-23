@@ -46,6 +46,9 @@ public class MCH_WeaponInfo extends MCH_BaseInfo {
    public int suppliedNum;
    public int maxAmmo;
    public List<MCH_WeaponInfo.RoundItem> roundItems;
+   /** Rounds one basic ammo item reloads (set by {@link MCH_AmmoClass#apply}), or 0 when {@link #roundItems} is the
+    *  config's own cost of one whole supply. */
+   public int roundsPerAmmoItem;
    public int soundDelay;
    public float soundVolume;
    public float soundPitch;

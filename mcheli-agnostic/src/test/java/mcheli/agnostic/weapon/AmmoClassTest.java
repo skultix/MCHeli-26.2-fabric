@@ -34,7 +34,7 @@ class AmmoClassTest {
                   continue;
                }
                String key = line.substring(0, eq).trim().toLowerCase(Locale.ROOT);
-               if (key.equals("type") || key.equals("displayname") || key.equals("power")) {
+               if (key.equals("type") || key.equals("displayname") || key.equals("power") || key.equals("suppliednum")) {
                   wi.loadItemData(key, line.substring(eq + 1).trim());
                }
             }
@@ -53,21 +53,32 @@ class AmmoClassTest {
          Map.entry("m134", MCH_AmmoClass.BULLET), Map.entry("mg_coaxial", MCH_AmmoClass.BULLET),
          Map.entry("yakb-12_7", MCH_AmmoClass.BULLET), Map.entry("gshg7_62mm", MCH_AmmoClass.BULLET),
          Map.entry("mg15", MCH_AmmoClass.BULLET), Map.entry("mg3_l", MCH_AmmoClass.BULLET),
-         // larger guns: tank shells
-         Map.entry("m230", MCH_AmmoClass.SHELL), Map.entry("m61a1", MCH_AmmoClass.SHELL),
-         Map.entry("gau-8", MCH_AmmoClass.SHELL), Map.entry("2a46m-1_apfsds", MCH_AmmoClass.SHELL),
-         Map.entry("rehinmetall_he", MCH_AmmoClass.SHELL), Map.entry("152mm_howitzer", MCH_AmmoClass.SHELL),
-         Map.entry("15_5cm", MCH_AmmoClass.SHELL), Map.entry("46cm", MCH_AmmoClass.SHELL),
-         Map.entry("gpu-2", MCH_AmmoClass.SHELL), Map.entry("a10gau8", MCH_AmmoClass.SHELL),
-         // gun-fired "Rocket"-type rounds
-         Map.entry("type3bullet_46", MCH_AmmoClass.SHELL), Map.entry("81mm_mortar", MCH_AmmoClass.SHELL),
-         Map.entry("mk19_l", MCH_AmmoClass.SHELL), Map.entry("gmw", MCH_AmmoClass.SHELL),
+         // 20-40 mm cannons: autocannon rounds (by calibre, or no calibre and a big supply)
+         Map.entry("m230", MCH_AmmoClass.AUTOCANNON), Map.entry("m61a1", MCH_AmmoClass.AUTOCANNON),
+         Map.entry("gau-8", MCH_AmmoClass.AUTOCANNON), Map.entry("gpu-2", MCH_AmmoClass.AUTOCANNON),
+         Map.entry("2a42", MCH_AmmoClass.AUTOCANNON), Map.entry("bofors40mm", MCH_AmmoClass.AUTOCANNON),
+         Map.entry("rmk30", MCH_AmmoClass.AUTOCANNON), Map.entry("a10gau8", MCH_AmmoClass.AUTOCANNON),
+         // 40 mm grenade launchers
+         Map.entry("mk19_l", MCH_AmmoClass.GRENADE), Map.entry("cb90_mk19", MCH_AmmoClass.GRENADE),
+         Map.entry("gmw", MCH_AmmoClass.GRENADE), Map.entry("m75_40mm", MCH_AmmoClass.GRENADE),
+         // tank guns
+         Map.entry("2a46m-1_apfsds", MCH_AmmoClass.SHELL), Map.entry("rehinmetall_he", MCH_AmmoClass.SHELL),
+         Map.entry("kba-3_he", MCH_AmmoClass.SHELL), Map.entry("90mm_gun_m3", MCH_AmmoClass.SHELL),
+         Map.entry("105mm", MCH_AmmoClass.SHELL), Map.entry("d56ts", MCH_AmmoClass.SHELL),
+         // howitzers, naval guns and their shells
+         Map.entry("152mm_howitzer", MCH_AmmoClass.ARTILLERY), Map.entry("m102_105mm", MCH_AmmoClass.ARTILLERY),
+         Map.entry("15_5cm", MCH_AmmoClass.ARTILLERY), Map.entry("46cm", MCH_AmmoClass.ARTILLERY),
+         Map.entry("12_7cm", MCH_AmmoClass.ARTILLERY), Map.entry("76mmgun", MCH_AmmoClass.ARTILLERY),
+         Map.entry("type3bullet_46", MCH_AmmoClass.ARTILLERY), Map.entry("canistershell", MCH_AmmoClass.ARTILLERY),
+         // mortars
+         Map.entry("60mm_mortar", MCH_AmmoClass.MORTAR), Map.entry("81mm_mortar", MCH_AmmoClass.MORTAR),
          // guided: missiles
          Map.entry("aim9", MCH_AmmoClass.MISSILE), Map.entry("agm114", MCH_AmmoClass.MISSILE),
          Map.entry("9m119m", MCH_AmmoClass.MISSILE), Map.entry("gbu-12", MCH_AmmoClass.MISSILE),
-         // unguided, not gun-fired: bombs
-         Map.entry("mk82", MCH_AmmoClass.BOMB), Map.entry("hydra70", MCH_AmmoClass.BOMB),
-         Map.entry("s-8", MCH_AmmoClass.BOMB), Map.entry("mk46", MCH_AmmoClass.BOMB),
+         // unguided rockets, bombs, torpedoes
+         Map.entry("hydra70", MCH_AmmoClass.ROCKET), Map.entry("s-8", MCH_AmmoClass.ROCKET),
+         Map.entry("bm_14_17", MCH_AmmoClass.ROCKET), Map.entry("mk82", MCH_AmmoClass.BOMB),
+         Map.entry("mk46", MCH_AmmoClass.TORPEDO), Map.entry("type93torpedo", MCH_AmmoClass.TORPEDO),
          // no ammunition
          Map.entry("dispenser_water", MCH_AmmoClass.NONE), Map.entry("smoke_red", MCH_AmmoClass.NONE),
          Map.entry("targeting_pod_block", MCH_AmmoClass.NONE)));
@@ -103,6 +114,23 @@ class AmmoClassTest {
       assertEquals(1, gun.roundItems.size());
       assertEquals("mcheli:ammo_tank_shell", gun.roundItems.get(0).itemName);
       assertEquals(1, gun.roundItems.get(0).num);
+      assertEquals(1, gun.roundsPerAmmoItem);
       assertEquals("water_bucket", pump.roundItems.get(0).itemName);
+   }
+
+   @Test
+   void reloadsArePaidPerRoundOrPerBelt() {
+      // The belt-fed calibres come as belts, everything else is one round per item.
+      assertEquals(25, MCH_AmmoClass.BULLET.roundsPerItem);
+      assertEquals(20, MCH_AmmoClass.AUTOCANNON.roundsPerItem);
+      for (MCH_AmmoClass c : new MCH_AmmoClass[] {MCH_AmmoClass.GRENADE, MCH_AmmoClass.SHELL, MCH_AmmoClass.ARTILLERY,
+            MCH_AmmoClass.MORTAR, MCH_AmmoClass.MISSILE, MCH_AmmoClass.ROCKET, MCH_AmmoClass.BOMB, MCH_AmmoClass.TORPEDO}) {
+         assertEquals(1, c.roundsPerItem, c.name());
+      }
+      assertEquals(0, MCH_AmmoClass.itemsFor(0, 25));
+      assertEquals(1, MCH_AmmoClass.itemsFor(7, 25));
+      assertEquals(8, MCH_AmmoClass.itemsFor(8, 1));
+      assertEquals(10, MCH_AmmoClass.itemsFor(200, 20));
+      assertEquals(11, MCH_AmmoClass.itemsFor(201, 20));
    }
 }
