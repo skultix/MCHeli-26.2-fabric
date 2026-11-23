@@ -86,7 +86,7 @@ public class MchNtmGameTest implements FabricClientGameTest {
             String id = "ammo_press/" + BuiltInRegistries.ITEM.getKey(ammo.get()).getPath();
             check(type(rm.byKey(key(id)).orElse(null)).equals("hbm:ammo_press"), id + " is not an ammo press recipe");
         }
-        check(rm.byKey(key("ammo_fallback/ammo_bullet")).isEmpty(), "the crafting-table ammo recipe should be off with NTM");
+        check(rm.byKey(key("ammo_fallback/ammo_7_62mm")).isEmpty(), "the crafting-table ammo recipe should be off with NTM");
         check(rm.byKey(key("m1a2")).isEmpty(), "the crafting-table M1A2 recipe should be off with NTM");
         int vehicles = 0;
         int assembly = 0;

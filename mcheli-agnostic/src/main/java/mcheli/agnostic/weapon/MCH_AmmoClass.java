@@ -5,17 +5,19 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
  * The ammunition a weapon is reloaded with. The original mod reloaded every weapon from its own list of raw materials
  * ({@code Item = 2, iron_ingot}); this port reloads from crafted ammo items, each the ammunition that weapon really
- * fires, paid per round. An item holds {@link #roundsPerItem} rounds, which its tooltip states: the belt-fed calibres
- * come as belts, everything else is one round per item.
+ * fires, paid per round. Guns ({@link #isGun}) reload from the rounds of their own calibre ({@link MCH_AmmoCaliber}:
+ * "20mm Rounds", "105mm Shell"; belts of 25 up to 40 mm); the other classes share one item each, one round per item.
  * <ul>
- *   <li>{@link #BULLET}: guns up to 12.7 mm (a belt of 25);</li>
- *   <li>{@link #AUTOCANNON}: 20&ndash;40 mm cannons (a belt of 20);</li>
+ *   <li>{@link #BULLET}: guns up to 12.7 mm;</li>
+ *   <li>{@link #AUTOCANNON}: 20&ndash;40 mm cannons;</li>
  *   <li>{@link #GRENADE}: 40 mm grenade launchers (Mk19, GMW, M75);</li>
  *   <li>{@link #SHELL}: tank guns;</li>
  *   <li>{@link #ARTILLERY}: howitzers, naval guns and their shells;</li>
@@ -29,12 +31,12 @@ import java.util.regex.Pattern;
  * config's own items.
  */
 public enum MCH_AmmoClass {
-   BULLET("ammo_bullet", 25),
-   AUTOCANNON("ammo_autocannon", 20),
-   GRENADE("ammo_grenade", 1),
-   SHELL("ammo_tank_shell", 1),
-   ARTILLERY("ammo_artillery_shell", 1),
-   MORTAR("ammo_mortar", 1),
+   BULLET(null, 0),
+   AUTOCANNON(null, 0),
+   GRENADE(null, 0),
+   SHELL(null, 0),
+   ARTILLERY(null, 0),
+   MORTAR(null, 0),
    MISSILE("ammo_missile", 1),
    ROCKET("ammo_rocket", 1),
    BOMB("ammo_bomb", 1),
@@ -70,6 +72,11 @@ public enum MCH_AmmoClass {
 
    public String itemId() {
       return this.itemPath == null ? null : "mcheli:" + this.itemPath;
+   }
+
+   /** Gun classes reload from calibre items ({@link MCH_AmmoCaliber}). */
+   public boolean isGun() {
+      return this.ordinal() <= MORTAR.ordinal();
    }
 
    public static MCH_AmmoClass classify(MCH_WeaponInfo info) {
@@ -139,7 +146,7 @@ public enum MCH_AmmoClass {
    }
 
    /** The calibre written in a name ("M2 12.7mm", "15.5cm Type91", "105mmgun"), in mm, or NaN. */
-   static float caliberMm(String s) {
+   public static float caliberMm(String s) {
       if (s == null) {
          return Float.NaN;
       }
@@ -151,9 +158,27 @@ public enum MCH_AmmoClass {
       return m.group(2).equalsIgnoreCase("cm") ? v * 10.0F : v;
    }
 
+   /** The calibre item of a gun, or null for the non-gun classes. */
+   public static MCH_AmmoCaliber caliber(MCH_WeaponInfo info) {
+      MCH_AmmoClass c = classify(info);
+      return c.isGun() ? MCH_AmmoCaliber.of(info, c) : null;
+   }
+
+   /** Every calibre item the given weapons need, smallest first (each becomes an item at start-up). */
+   public static SortedSet<MCH_AmmoCaliber> calibers(Collection<MCH_WeaponInfo> weapons) {
+      SortedSet<MCH_AmmoCaliber> out = new TreeSet<>();
+      for (MCH_WeaponInfo wi : weapons) {
+         MCH_AmmoCaliber cal = caliber(wi);
+         if (cal != null) {
+            out.add(cal);
+         }
+      }
+      return out;
+   }
+
    /**
-    * Replaces each weapon's reload cost with its ammo item, paid per round ({@link #roundsPerItem}). Weapons classed
-    * {@link #NONE} keep theirs. Returns how many weapons were changed.
+    * Replaces each weapon's reload cost with its ammo item, paid per round: its calibre's rounds for a gun, the shared
+    * item otherwise. Weapons classed {@link #NONE} keep theirs. Returns how many weapons were changed.
     */
    public static int apply(Collection<MCH_WeaponInfo> weapons) {
       int n = 0;
@@ -162,10 +187,11 @@ public enum MCH_AmmoClass {
          if (c == NONE) {
             continue;
          }
+         MCH_AmmoCaliber cal = c.isGun() ? MCH_AmmoCaliber.of(wi, c) : null;
          List<MCH_WeaponInfo.RoundItem> cost = new ArrayList<>();
-         cost.add(new MCH_WeaponInfo.RoundItem(1, c.itemId(), 0));
+         cost.add(new MCH_WeaponInfo.RoundItem(1, cal != null ? cal.itemId() : c.itemId(), 0));
          wi.roundItems = cost;
-         wi.roundsPerAmmoItem = c.roundsPerItem;
+         wi.roundsPerAmmoItem = cal != null ? cal.roundsPerItem() : c.roundsPerItem;
          n++;
       }
       return n;

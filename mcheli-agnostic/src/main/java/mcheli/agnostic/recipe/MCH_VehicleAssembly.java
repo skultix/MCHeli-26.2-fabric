@@ -387,7 +387,7 @@ public final class MCH_VehicleAssembly {
          }
          case AMMO_BOX -> {
             b.bulk(STEEL_PLATE, 16).bulk(STEEL, 8)
-               .fixed("mcheli:ammo_bullet", 16).fixed("mcheli:ammo_tank_shell", 4)
+               .fixed("mcheli:ammo_7_62mm", 16).fixed("mcheli:ammo_30mm", 4).fixed("mcheli:ammo_120mm", 2)
                .fixed("mcheli:ammo_missile", 2).fixed("mcheli:ammo_bomb", 2);
          }
       }

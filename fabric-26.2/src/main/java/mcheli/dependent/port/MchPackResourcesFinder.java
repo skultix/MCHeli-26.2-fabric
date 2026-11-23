@@ -39,6 +39,7 @@ public final class MchPackResourcesFinder {
         if (packType != PackType.CLIENT_RESOURCES) {
             return;
         }
+        addAmmoModelPack(out);
         for (PackMount mount : MchContentPacks.mounts()) {
             String id = "mcheli/" + mount.name();
             PackLocationInfo location = new PackLocationInfo(
@@ -71,6 +72,30 @@ public final class MchPackResourcesFinder {
      * asset packs these must NOT override anything — a datapack an operator adds should still be able to replace a
      * generated recipe, and the four hand-written {@code data/mcheli/recipe/*.json} files keep priority.
      */
+    /** The generated client item definitions of the calibre ammo items ({@link MchAmmoModelPack}). */
+    private static void addAmmoModelPack(Consumer<Pack> out) {
+        PackLocationInfo location = new PackLocationInfo(
+            "mcheli/ammo", Component.literal("MCHeli ammo items"), PackSource.BUILT_IN, Optional.empty());
+        Pack.ResourcesSupplier resources = new Pack.ResourcesSupplier() {
+            @Override
+            public PackResources openPrimary(PackLocationInfo loc) {
+                return new MchAmmoModelPack(loc);
+            }
+
+            @Override
+            public PackResources openFull(PackLocationInfo loc, Pack.Metadata meta) {
+                return new MchAmmoModelPack(loc);
+            }
+        };
+        PackSelectionConfig selection = new PackSelectionConfig(true, Pack.Position.BOTTOM, false);
+        Pack pack = Pack.readMetaAndCreate(location, resources, PackType.CLIENT_RESOURCES, selection);
+        if (pack == null) {
+            LOGGER.warn("MCHeli: ammo item pack produced no resource pack (metadata error?)");
+            return;
+        }
+        out.accept(pack);
+    }
+
     private static void addRecipePack(Consumer<Pack> out) {
         PackLocationInfo location = new PackLocationInfo(
             "mcheli/recipes", Component.literal("MCHeli vehicle recipes"), PackSource.BUILT_IN, Optional.empty());

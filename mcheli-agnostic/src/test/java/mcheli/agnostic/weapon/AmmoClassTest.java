@@ -19,7 +19,7 @@ class AmmoClassTest {
    private static final Path WEAPONS = Path.of("..", "mcheli-assets", "assets", "mcheli", "weapons");
 
    /** The bundled weapons, with only the fields the classifier reads. */
-   private static Map<String, MCH_WeaponInfo> bundled() throws IOException {
+   static Map<String, MCH_WeaponInfo> bundled() throws IOException {
       Map<String, MCH_WeaponInfo> out = new TreeMap<>();
       try (Stream<Path> files = Files.list(WEAPONS)) {
          for (Path f : (Iterable<Path>) files::iterator) {
@@ -112,7 +112,7 @@ class AmmoClassTest {
       pump.loadItemData("item", "1, water_bucket");
       assertEquals(1, MCH_AmmoClass.apply(List.of(gun, pump)));
       assertEquals(1, gun.roundItems.size());
-      assertEquals("mcheli:ammo_tank_shell", gun.roundItems.get(0).itemName);
+      assertEquals("mcheli:ammo_125mm", gun.roundItems.get(0).itemName);
       assertEquals(1, gun.roundItems.get(0).num);
       assertEquals(1, gun.roundsPerAmmoItem);
       assertEquals("water_bucket", pump.roundItems.get(0).itemName);
@@ -120,17 +120,15 @@ class AmmoClassTest {
 
    @Test
    void reloadsArePaidPerRoundOrPerBelt() {
-      // The belt-fed calibres come as belts, everything else is one round per item.
-      assertEquals(25, MCH_AmmoClass.BULLET.roundsPerItem);
-      assertEquals(20, MCH_AmmoClass.AUTOCANNON.roundsPerItem);
-      for (MCH_AmmoClass c : new MCH_AmmoClass[] {MCH_AmmoClass.GRENADE, MCH_AmmoClass.SHELL, MCH_AmmoClass.ARTILLERY,
-            MCH_AmmoClass.MORTAR, MCH_AmmoClass.MISSILE, MCH_AmmoClass.ROCKET, MCH_AmmoClass.BOMB, MCH_AmmoClass.TORPEDO}) {
+      // Guns pay in their calibre's rounds (AmmoCaliberTest); the shared items are one round each.
+      for (MCH_AmmoClass c : new MCH_AmmoClass[] {MCH_AmmoClass.MISSILE, MCH_AmmoClass.ROCKET, MCH_AmmoClass.BOMB, MCH_AmmoClass.TORPEDO}) {
          assertEquals(1, c.roundsPerItem, c.name());
       }
       assertEquals(0, MCH_AmmoClass.itemsFor(0, 25));
       assertEquals(1, MCH_AmmoClass.itemsFor(7, 25));
       assertEquals(8, MCH_AmmoClass.itemsFor(8, 1));
       assertEquals(10, MCH_AmmoClass.itemsFor(200, 20));
+      assertEquals(8, MCH_AmmoClass.itemsFor(200, 25));
       assertEquals(11, MCH_AmmoClass.itemsFor(201, 20));
    }
 }

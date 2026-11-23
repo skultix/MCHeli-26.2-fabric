@@ -1,8 +1,0 @@
-{
-  "fabric:load_conditions": [{"condition": "fabric:not", "value": {"condition": "fabric:all_mods_loaded", "values": ["hbm"]}}],
-  "type": "minecraft:crafting_shaped",
-  "category": "misc",
-  "pattern": ["I", "G", "C"],
-  "key": {"I": "minecraft:iron_block", "G": "minecraft:tnt", "C": "minecraft:copper_ingot"},
-  "result": {"id": "mcheli:ammo_tank_shell", "count": 1}
-}

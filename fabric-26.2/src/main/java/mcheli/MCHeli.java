@@ -63,13 +63,16 @@ public class MCHeli implements ModInitializer {
         MCH_VehicleInfoManager.getInstance().load(res, log, "vehicles");
         MCH_WeaponInfoManager.getInstance().load(res, log, "weapons");
         mcheli.agnostic.hud.MCH_HudManager.getInstance().load(res, log);
-        // Every weapon reloads from one of the four basic ammo items instead of its config's raw materials.
+        // Every weapon reloads from its own ammunition instead of its config's raw materials: a gun from its calibre's
+        // rounds (one item per calibre in use, registered here, while the registries are still open), the rest from the
+        // shared missile/rocket/bomb/torpedo items.
         @SuppressWarnings("unchecked")
         java.util.Collection<MCH_WeaponInfo> allWeapons = new java.util.ArrayList<>(
             ((java.util.Map<String, Object>) MCH_WeaponInfoManager.getInstance().getMap()).values().stream()
                 .filter(MCH_WeaponInfo.class::isInstance).map(MCH_WeaponInfo.class::cast).toList());
-        LOGGER.info("MCHeli: {} weapons reload from the basic ammo items",
+        LOGGER.info("MCHeli: {} weapons reload from ammo items",
             mcheli.agnostic.weapon.MCH_AmmoClass.apply(allWeapons));
+        MchRegistries.registerCalibers(mcheli.agnostic.weapon.MCH_AmmoClass.calibers(allWeapons));
         // Server damage tuning (config/mcheli-damage.json) on top of the weapon configs just parsed.
         mcheli.dependent.MchDamageConfig.load();
         mcheli.dependent.MchDamageConfig.registerCommand();

@@ -23,15 +23,6 @@ public class MCHeliClient implements ClientModInitializer {
         MchClientEvents.register();   // renderers, riding-GUI screen, particle providers
         mcheli.dependent.client.VehicleItemRenderer.register(); // the mcheli:vehicle special item model (3D icons)
         MchKeybinds.register();
-        // Each ammo item says what it holds (a belt of 25, one tank-gun round...): item.mcheli.<ammo>.desc.
-        net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback.EVENT.register((stack, context, flag, lines) -> {
-            for (mcheli.dependent.registry.MchHolder<net.minecraft.world.item.Item> ammo : mcheli.dependent.registry.MchRegistries.AMMO) {
-                if (stack.is(ammo.get())) {
-                    lines.add(1, net.minecraft.network.chat.Component.translatable(stack.getItem().getDescriptionId() + ".desc")
-                        .withStyle(net.minecraft.ChatFormatting.GRAY));
-                }
-            }
-        });
         MchClientInput.register();
         MchClientRotation.register();
         MchGunnerView.register();

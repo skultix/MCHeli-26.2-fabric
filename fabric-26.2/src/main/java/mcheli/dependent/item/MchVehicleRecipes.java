@@ -111,6 +111,13 @@ public final class MchVehicleRecipes {
                                : info.name.toLowerCase(java.util.Locale.ROOT) + "_" + n, json);
             }
         }
+        // The calibre ammo items: made in the ammo press with NTM, at the crafting table without. The shared items
+        // (missile, rocket, bomb, torpedo) have static recipes in data/mcheli/recipe/.
+        int ammoOrder = 2000100;
+        for (mcheli.agnostic.weapon.MCH_AmmoCaliber cal : mcheli.dependent.registry.MchRegistries.caliberAmmo().keySet()) {
+            out.put((ntm ? "ammo_press/" : "ammo_fallback/") + cal.itemPath(),
+                ntm ? pressJson(cal.pressCost(), cal.itemId(), ammoOrder++) : craftJson(cal.craftCost(), cal.itemId()));
+        }
         LOGGER.info("MCHeli: built {} vehicle {} recipes ({} skipped)", out.size(), ntm ? "NTM assembly machine" : "crafting", skipped);
         return out;
     }
@@ -129,6 +136,35 @@ public final class MchVehicleRecipes {
                 category.put(info, cat);
             }
         }
+    }
+
+    /** An NTM ammo press recipe: the inputs laid out row by row in its 3x3 grid. */
+    private static String pressJson(mcheli.agnostic.weapon.MCH_AmmoCaliber.Cost cost, String result, int order) {
+        StringBuilder key = new StringBuilder();
+        char[] grid = "         ".toCharArray();
+        List<mcheli.agnostic.weapon.MCH_AmmoCaliber.Ingredient> in = cost.inputs();
+        for (int i = 0; i < in.size(); i++) {
+            char c = (char) ('A' + i);
+            grid[i] = c;
+            key.append(i == 0 ? "" : ",").append('"').append(c).append("\":{\"count\":").append(in.get(i).count())
+                .append(",\"ingredient\":\"").append(in.get(i).id()).append("\"}");
+        }
+        String g = new String(grid);
+        return "{\"type\":\"hbm:ammo_press\",\"key\":{" + key + "},\"order\":" + order
+            + ",\"output_items\":[{\"count\":" + cost.output() + ",\"id\":\"" + result + "\"}],\"pattern\":[\""
+            + g.substring(0, 3) + "\",\"" + g.substring(3, 6) + "\",\"" + g.substring(6) + "\"]}";
+    }
+
+    /** A shapeless crafting-table recipe, one ingredient per grid slot. */
+    private static String craftJson(mcheli.agnostic.weapon.MCH_AmmoCaliber.Cost cost, String result) {
+        StringBuilder in = new StringBuilder();
+        for (mcheli.agnostic.weapon.MCH_AmmoCaliber.Ingredient i : cost.inputs()) {
+            for (int k = 0; k < i.count(); k++) {
+                in.append(in.length() == 0 ? "" : ",").append('"').append(i.id()).append('"');
+            }
+        }
+        return "{\"type\":\"minecraft:crafting_shapeless\",\"category\":\"misc\",\"ingredients\":[" + in
+            + "],\"result\":{\"id\":\"" + result + "\",\"count\":" + cost.output() + "}}";
     }
 
     /** An NTM assembly-machine recipe ({@code hbm:assembly_machine}) for one vehicle. */

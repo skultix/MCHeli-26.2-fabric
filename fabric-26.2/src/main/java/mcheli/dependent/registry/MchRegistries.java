@@ -171,19 +171,42 @@ public final class MchRegistries {
     public static final MchHolder<mcheli.dependent.item.MchContainerItem> CONTAINER_ITEM =
         item("container", mcheli.dependent.item.MchContainerItem::new, new Item.Properties());
 
-    /** The vehicle ammo items, one per kind of ammunition ({@link mcheli.agnostic.weapon.MCH_AmmoClass}). */
-    public static final MchHolder<Item> AMMO_BULLET = item("ammo_bullet", Item::new, new Item.Properties());
-    public static final MchHolder<Item> AMMO_AUTOCANNON = item("ammo_autocannon", Item::new, new Item.Properties());
-    public static final MchHolder<Item> AMMO_GRENADE = item("ammo_grenade", Item::new, new Item.Properties());
-    public static final MchHolder<Item> AMMO_TANK_SHELL = item("ammo_tank_shell", Item::new, new Item.Properties().stacksTo(16));
-    public static final MchHolder<Item> AMMO_ARTILLERY_SHELL = item("ammo_artillery_shell", Item::new, new Item.Properties().stacksTo(16));
-    public static final MchHolder<Item> AMMO_MORTAR = item("ammo_mortar", Item::new, new Item.Properties().stacksTo(16));
-    public static final MchHolder<Item> AMMO_MISSILE = item("ammo_missile", Item::new, new Item.Properties().stacksTo(16));
-    public static final MchHolder<Item> AMMO_ROCKET = item("ammo_rocket", Item::new, new Item.Properties().stacksTo(16));
-    public static final MchHolder<Item> AMMO_BOMB = item("ammo_bomb", Item::new, new Item.Properties().stacksTo(16));
-    public static final MchHolder<Item> AMMO_TORPEDO = item("ammo_torpedo", Item::new, new Item.Properties().stacksTo(4));
-    public static final List<MchHolder<Item>> AMMO = List.of(AMMO_BULLET, AMMO_AUTOCANNON, AMMO_GRENADE, AMMO_TANK_SHELL,
-        AMMO_ARTILLERY_SHELL, AMMO_MORTAR, AMMO_MISSILE, AMMO_ROCKET, AMMO_BOMB, AMMO_TORPEDO);
+    /** The shared ammo items (one round each); guns reload from their calibre items ({@link #registerCalibers}). */
+    public static final MchHolder<Item> AMMO_MISSILE = ammo("ammo_missile", null, 16);
+    public static final MchHolder<Item> AMMO_ROCKET = ammo("ammo_rocket", null, 16);
+    public static final MchHolder<Item> AMMO_BOMB = ammo("ammo_bomb", null, 16);
+    public static final MchHolder<Item> AMMO_TORPEDO = ammo("ammo_torpedo", null, 4);
+    /** Every ammo item: the calibre items, smallest first, then the shared ones. */
+    public static final List<MchHolder<Item>> AMMO = new ArrayList<>(List.of(AMMO_MISSILE, AMMO_ROCKET, AMMO_BOMB, AMMO_TORPEDO));
+    private static final java.util.Map<mcheli.agnostic.weapon.MCH_AmmoCaliber, MchHolder<Item>> CALIBER_AMMO = new java.util.LinkedHashMap<>();
+
+    private static MchHolder<Item> ammo(String name, mcheli.agnostic.weapon.MCH_AmmoCaliber cal, int stack) {
+        return item(name, props -> new mcheli.dependent.item.MchAmmoItem(cal, props), new Item.Properties().stacksTo(stack));
+    }
+
+    /**
+     * One ammo item per gun calibre the loaded weapon configs use ({@code mcheli:ammo_20mm}, {@code mcheli:ammo_105mm}...),
+     * so a content pack's new calibre gets its own rounds. Called from {@code onInitialize}, after the weapons load.
+     */
+    public static void registerCalibers(java.util.Collection<mcheli.agnostic.weapon.MCH_AmmoCaliber> calibers) {
+        List<MchHolder<Item>> added = new ArrayList<>();
+        for (mcheli.agnostic.weapon.MCH_AmmoCaliber cal : calibers) {
+            if (CALIBER_AMMO.containsKey(cal) || ITEM_IDS.contains(cal.itemPath())) {
+                continue;
+            }
+            int stack = cal.belted() ? 64 : cal.mm() >= 300.0F ? 4 : 16;
+            MchHolder<Item> h = ammo(cal.itemPath(), cal, stack);
+            CALIBER_AMMO.put(cal, h);
+            added.add(h);
+        }
+        AMMO.addAll(0, added);
+        LOG.info("MCHeli: registered {} calibre ammo items", added.size());
+    }
+
+    /** The registered calibre items. */
+    public static java.util.Map<mcheli.agnostic.weapon.MCH_AmmoCaliber, MchHolder<Item>> caliberAmmo() {
+        return java.util.Collections.unmodifiableMap(CALIBER_AMMO);
+    }
 
     /** Refill a used fuel can by crafting it with coal (reference {@code MCH_RecipeFuel}). */
     public static final MchHolder<net.minecraft.world.item.crafting.RecipeSerializer<mcheli.dependent.item.MchFuelRefillRecipe>> FUEL_REFILL =
@@ -277,12 +300,19 @@ public final class MchRegistries {
     public static MchHolder<CreativeModeTab> TAB_PLANES;
     public static MchHolder<CreativeModeTab> TAB_TANKS;
     public static MchHolder<CreativeModeTab> TAB_VEHICLES;
+    public static MchHolder<CreativeModeTab> TAB_AMMO;
 
     private static void registerTabs() {
         TAB_HELICOPTERS = tab(Category.HELICOPTER, "helicopters", ICON_HELI);
         TAB_PLANES = tab(Category.PLANE, "planes", ICON_PLANE);
         TAB_TANKS = tab(Category.TANK, "tanks", ICON_TANK);
         TAB_VEHICLES = tab(Category.VEHICLE, "vehicles", ICON_VEHICLE);
+        // The ammunition has its own tab (listed lazily: the calibre items register after the weapon configs load).
+        TAB_AMMO = register(BuiltInRegistries.CREATIVE_MODE_TAB, "ammo", FabricCreativeModeTab.builder()
+            .title(Component.translatable("itemGroup.mcheli.ammo"))
+            .icon(() -> new ItemStack(AMMO_MISSILE.get()))
+            .displayItems((params, output) -> AMMO.forEach(a -> output.accept(new ItemStack(a.get()))))
+            .build());
     }
 
     private static MchHolder<CreativeModeTab> tab(Category cat, String key, Supplier<? extends Item> icon) {
@@ -301,9 +331,6 @@ public final class MchRegistries {
                 output.accept(new ItemStack(FUEL.get()));        // every category burns fuel, so every tab offers the can
                 output.accept(new ItemStack(WRENCH.get()));      // ...and every vehicle can be mended with the wrench
                 output.accept(new ItemStack(CONTAINER_ITEM.get())); // ...and the cargo box rides with any of them
-                for (MchHolder<Item> ammo : AMMO) {                 // ...and is reloaded with the ammo items
-                    output.accept(new ItemStack(ammo.get()));
-                }
             })
             .build());
     }
