@@ -7,7 +7,7 @@ import org.objectweb.asm.tree.ClassNode;
 import org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin;
 import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
 
-/** Applies an optional-mod compat mixin only when that mod is installed ({@code Taczxxx} -> {@code tacz}). */
+/** Applies an optional-mod compat mixin only when that mod is installed ({@code Taczxxx} -> {@code tacz}, {@code Ntm} -> {@code hbm}, {@code Pal} -> PlayerAnimationLib). */
 public final class CompatMixinPlugin implements IMixinConfigPlugin {
     @Override
     public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
@@ -17,6 +17,9 @@ public final class CompatMixinPlugin implements IMixinConfigPlugin {
         }
         if (simple.startsWith("Tacz")) {
             return FabricLoader.getInstance().isModLoaded("tacz");
+        }
+        if (simple.startsWith("Pal")) {
+            return FabricLoader.getInstance().isModLoaded("player_animation_library");
         }
         if (simple.startsWith("Ntm")) {
             return FabricLoader.getInstance().isModLoaded("hbm");

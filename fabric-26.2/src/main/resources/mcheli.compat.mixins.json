@@ -9,7 +9,8 @@
     "NtmExplosionVNTMixin"
   ],
   "client": [
-    "TaczNtmHudFovMixin"
+    "TaczNtmHudFovMixin",
+    "PalAdjustmentModifierMixin"
   ],
   "injectors": {
     "defaultRequire": 0
